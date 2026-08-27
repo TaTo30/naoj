@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { App } from "@naoj/components"
+import { App, NaojEditor } from "@naoj/components"
 </script>
 
 <template>
@@ -12,15 +12,16 @@ import { App } from "@naoj/components"
         dynamic modules goes here
       </div>
       <div>
-        <App />
         settings and other dynamic modules go here
       </div>
     </aside>
     <main>
       <div>
         tabs go here
+        <app />
       </div>
       <div>
+        <naoj-editor />
         main content go here
       </div>
       <div>
