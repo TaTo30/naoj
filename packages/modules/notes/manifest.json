@@ -1,0 +1,13 @@
+{
+  "name": "notes",
+  "version": "1.0.0",
+  "description": "Markdown note-taking module",
+  "icon": "📝",
+  "primaryRoute": "/notes",
+  "tables": ["notes"],
+  "components": {
+    "NoteList": "src/components/NoteList.vue",
+    "NoteEditor": "src/components/NoteEditor.vue"
+  },
+  "entrypoint": "dist/index.js"
+}

@@ -1,0 +1,8 @@
+{
+  "modules": [
+    {
+      "name": "notes",
+      "path": "./packages/modules/notes"
+    }
+  ]
+}
