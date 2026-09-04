@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import { PanelLeft } from "lucide-vue-next";
+import { Icon } from "@iconify/vue"
+
 import ModuleSelector from "./components/ModuleSelector.vue";
 import ThemeToggle from "./components/ThemeToggle.vue";
 import EmptySidebar from "./components/EmptySidebar.vue";
@@ -42,10 +43,11 @@ const sidebarOpen = ref(window.innerWidth >= 768);
       >
         <button
           :title="sidebarOpen ? 'Hide sidebar' : 'Show sidebar'"
-          class="p-1.5 rounded-md text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors flex-shrink-0"
+          class="p-1.5 rounded-md text-stone-400 hover:text-stone-700 dark:hover:text-stone-200
+          hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors flex-shrink-0 cursor-pointer"
           @click="sidebarOpen = !sidebarOpen"
         >
-          <PanelLeft :size="16" />
+          <Icon icon="mdi:account" />
         </button>
         <div class="flex-1 overflow-hidden">
           <router-view name="toolbar" />

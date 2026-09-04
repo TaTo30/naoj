@@ -1,7 +1,7 @@
 {
-  "name": "notes",
+  "name": "notebook",
   "version": "1.0.0",
-  "description": "Markdown note-taking module",
+  "description": "Markdown notebook module",
   "icon": "📝",
   "primaryRoute": "/notes",
   "tables": ["notes"],

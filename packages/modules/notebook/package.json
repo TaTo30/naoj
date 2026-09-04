@@ -1,5 +1,5 @@
 {
-  "name": "@naoj/notes",
+  "name": "@naoj/notebook",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -14,7 +14,7 @@
   "dependencies": {
     "@naoj/components": "workspace:*",
     "@naoj/core": "workspace:*",
-    "lucide-vue-next": "^0.525.0",
+    "@iconify/vue": "^5.0.1",
     "vue": "^3.5.0",
     "vue-router": "^5.0.0"
   },

@@ -23,7 +23,7 @@ export function useNotes() {
     _isLoading.value = true;
     try {
       _notes.value = await core
-        .from<INote>("notes")
+        .from<INote>("notebook_notes")
         .where("deleted", "=", 0)
         .orderBy("title", "ASC")
         .all();
@@ -33,7 +33,7 @@ export function useNotes() {
   }
 
   async function createNote(path = "/"): Promise<number> {
-    const id = await core.from<INote>("notes").insert({
+    const id = await core.from<INote>("notebook_notes").insert({
       title: "Untitled",
       content: "",
       tags: "[]",
@@ -49,21 +49,21 @@ export function useNotes() {
     data: Partial<Omit<INote, "id" | "created_at" | "updated_at" | "deleted">>,
   ): Promise<void> {
     await core
-      .from<INote>("notes")
+      .from<INote>("notebook_notes")
       .where("id", "=", id)
       .update({ ...data, updated_at: new Date().toISOString() });
     await loadNotes();
   }
 
   async function deleteNote(id: number): Promise<void> {
-    await core.from<INote>("notes").where("id", "=", id).update({ deleted: 1 });
+    await core.from<INote>("notebook_notes").where("id", "=", id).update({ deleted: 1 });
     await loadNotes();
   }
 
   async function duplicateNote(id: number): Promise<number> {
     const original = await getNoteById(id);
     if (!original) throw new Error(`Note ${id} not found`);
-    const newId = await core.from<INote>("notes").insert({
+    const newId = await core.from<INote>("notebook_notes").insert({
       title: `${original.title} (copy)`,
       content: original.content,
       tags: original.tags,
@@ -75,7 +75,7 @@ export function useNotes() {
   }
 
   async function getNoteById(id: number): Promise<INote | null> {
-    return core.from<INote>("notes").where("id", "=", id).where("deleted", "=", 0).first();
+    return core.from<INote>("notebook_notes").where("id", "=", id).where("deleted", "=", 0).first();
   }
 
   const noteCount = computed(() => _notes.value.length);

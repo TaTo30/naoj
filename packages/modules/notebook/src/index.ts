@@ -4,7 +4,7 @@ import type { RouteRecordRaw } from 'vue-router'
 import { notesTable } from './schema.ts'
 import rawManifest from '../manifest.json'
 
-export class NotesModule extends BaseModule {
+export class NotebookModule extends BaseModule {
   readonly manifest: IModuleManifest = validateManifest(rawManifest)
   readonly tables: ITableSchema[] = [notesTable]
 
@@ -34,4 +34,4 @@ export class NotesModule extends BaseModule {
   }
 }
 
-export default NotesModule
+export default NotebookModule

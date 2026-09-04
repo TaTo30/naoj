@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from "vue";
-import { Moon, Sun } from "lucide-vue-next";
 
 const isDark = ref(document.documentElement.classList.contains("dark"));
 
@@ -27,7 +26,7 @@ onUnmounted(() => mq.removeEventListener("change", onSystemChange));
     class="w-9 h-9 flex items-center justify-center rounded-lg text-stone-500 hover:text-orange-500 hover:bg-stone-200 dark:text-stone-400 dark:hover:text-orange-400 dark:hover:bg-stone-700/60 transition-all duration-200"
     @click="toggle"
   >
-    <Sun v-if="isDark" :size="15" />
-    <Moon v-else :size="15" />
+    <!-- <Sun v-if="isDark" :size="15" /> -->
+    <!-- <Moon v-else :size="15" /> -->
   </button>
 </template>

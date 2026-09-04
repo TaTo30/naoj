@@ -12,22 +12,20 @@ import {
   EVENT_BUS_KEY,
   MODULE_REGISTRY_KEY,
 } from "@naoj/core";
-import { NotesModule } from "@naoj/notes";
+
+// Core modules
+import { NotebookModule } from "@naoj/notebook";
 
 async function bootstrap() {
-  // Database
   const adapter = new BrowserSQLAdapter(initSqlJs, sqlWasmUrl);
   await adapter.open(":memory:");
 
   const core = new CoreAPI(adapter);
   await core.initialize();
 
-  // Event bus
   const events = new EventBus();
-
-  // Module registry — register all modules before mounting
   const registry = new ModuleRegistry(core, events);
-  await registry.register(new NotesModule());
+  await registry.register(new NotebookModule());
 
   // Add module routes then a home fallback
   registry.getRoutes().forEach((route) => router.addRoute(route));

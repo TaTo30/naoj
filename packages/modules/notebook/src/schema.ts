@@ -1,11 +1,13 @@
 import { schema } from "@naoj/core";
 import type { ITableSchema } from "@naoj/core";
 
+const MODULE_NAME = "notebook_";
+
 export const notesTable: ITableSchema = schema
-  .table("notes")
+  .table(MODULE_NAME + "notes")
   .id()
   .text("title")
-  .default("Untitled")
+  .default("untitled")
   .text("content")
   .default("")
   .json("tags")
