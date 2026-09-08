@@ -1,14 +1,16 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
+import { useRouter } from "vue-router"
+
 import { Icon } from "@iconify/vue";
 import { Dropdown } from "floating-vue"
-import { useNotes } from "../composables/useNotes.ts";
 
 import { NaojTreeView } from "@naoj/components";
 
+import { useNotes } from "../composables/useNotes.ts";
 
-const { notes, isLoading, loadNotes, createNote } =
-  useNotes();
+const { notes, isLoading, loadNotes, createNote } = useNotes();
+const { push } = useRouter()
 
 const actions = ref({
   create: false
@@ -84,21 +86,22 @@ onMounted(loadNotes);
             <div class="flex items-center justify-start gap-2 group">
               <Icon icon="lucide:folder" size="16" />
               <div>
-                {{ props.label }} {{props.id}}
+                {{ props.label }}
               </div>
             </div>
-            <Dropdown :distance="6" placement="bottom-start">
-              <button class="btn size-6 rounded z-50">
-                <Icon icon="lucide:ellipsis-vertical" />
-              </button>
-              <template #popper>
-                hola mundo
-              </template>
-            </Dropdown>
+            <!-- <Dropdown :distance="6" placement="bottom-start"> -->
+            <!--   <button class="btn size-6 rounded z-50"> -->
+            <!--     <Icon icon="lucide:ellipsis-vertical" /> -->
+            <!--   </button> -->
+            <!--   <template #popper> -->
+            <!--     hola mundo -->
+            <!--   </template> -->
+            <!-- </Dropdown> -->
           </summary>
         </template>
         <template #file="props">
           <div
+              @click="push({ name: 'note-view', params: { id: props.id } })"
             class="flex items-center justify-between cursor-pointer hover:bg-black/10 dark:hover:bg-white/10 py-0.5 px-1 rounded"
             :style="{paddingLeft: 4 + 16 * props.level + 'px'}"
           >

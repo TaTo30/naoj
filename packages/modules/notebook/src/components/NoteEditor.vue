@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, computed, nextTick, onBeforeUnmount } from "vue";
+import { ref, watch, computed, nextTick, onBeforeUnmount, watchEffect } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { Icon } from "@iconify/vue";
 import { NaojEditor } from "@naoj/components";
@@ -8,64 +8,31 @@ import type { INote } from "../composables/useNotes.ts";
 
 const route = useRoute();
 const router = useRouter();
-const { getNoteById, updateNote, deleteNote } = useNotes();
+const { getNoteById } = useNotes();
 
 const note = ref<INote | null>(null);
-const titleInput = ref("");
 const contentValue = ref("");
-let _saveTimer: ReturnType<typeof setTimeout> | undefined;
 
 const noteId = computed(() => {
   const id = route.params["id"];
   return id ? Number(id) : null;
 });
 
-async function loadNote(id: number) {
-  note.value = await getNoteById(id);
-  if (note.value) {
-    titleInput.value = note.value.title;
-    contentValue.value = note.value.content;
+// Load the content of the selected note each time it changes
+watchEffect(async () => {
+  if (noteId.value !== null){
+    note.value = await getNoteById(noteId.value)
+    if (note.value){
+      contentValue.value = note.value.content;
+    }
+  } else {
+    note.value = null;
   }
-  // Cancel the save the watcher scheduled during data load
-  await nextTick();
-  clearTimeout(_saveTimer);
-}
-
-function scheduleSave() {
-  clearTimeout(_saveTimer);
-  if (!note.value) return;
-  _saveTimer = setTimeout(async () => {
-    if (!note.value) return;
-    await updateNote(note.value.id, {
-      title: titleInput.value,
-      content: contentValue.value,
-    });
-  }, 800);
-}
-
-watch(
-  noteId,
-  async (id) => {
-    if (id !== null) await loadNote(id);
-    else note.value = null;
-  },
-  { immediate: true },
-);
-
-watch([titleInput, contentValue], scheduleSave);
-
-async function handleDelete() {
-  if (!note.value) return;
-  const id = note.value.id;
-  await deleteNote(id);
-  await router.push({ name: "notes" });
-}
-
-onBeforeUnmount(() => clearTimeout(_saveTimer));
+})
 </script>
 
 <template>
-  <div class="flex flex-col h-full bg-white dark:bg-stone-950">
+  <div class="flex flex-col h-full bg-white dark:bg-stone-950  overflow-y-auto">
     <!-- Empty state -->
     <div v-if="!note" class="flex flex-col items-center justify-center h-full gap-3 select-none">
       <div
@@ -83,30 +50,15 @@ onBeforeUnmount(() => clearTimeout(_saveTimer));
 
     <!-- Editor -->
     <template v-else>
-      <div class="px-8 pt-7 pb-4 flex-shrink-0 border-b border-stone-100 dark:border-stone-800/60">
-        <input
-          v-model="titleInput"
-          type="text"
-          placeholder="Untitled Note"
-          class="w-full text-2xl font-bold bg-transparent border-none outline-none text-stone-900 dark:text-stone-50 placeholder-stone-300 dark:placeholder-stone-700 tracking-tight"
-        />
-      </div>
-
-      <div class="flex-1 overflow-y-auto px-8 py-6 text-stone-800 dark:text-stone-200">
-        <NaojEditor v-model="contentValue" />
-      </div>
-
-      <!-- Delete footer -->
-      <div
-        class="flex justify-end px-6 py-2 border-t border-stone-100 dark:border-stone-800/60 flex-shrink-0"
-      >
-        <button
-          class="flex items-center gap-1.5 text-xs text-stone-300 dark:text-stone-600 hover:text-red-400 dark:hover:text-red-500 transition-colors cursor-pointer"
-          @click="handleDelete"
-        >
-          <Icon icon="material-symbols:delete-outline-rounded" height="13" />
-          Delete note
-        </button>
+      <div class="flex justify-center mt-24">
+        <div class="flex flex-col w-[920px] border border-yellow-200 overflow-auto">
+          <div>
+            commands
+          </div>
+          <div>
+            <NaojEditor v-model="contentValue" />
+          </div>
+        </div>
       </div>
     </template>
   </div>

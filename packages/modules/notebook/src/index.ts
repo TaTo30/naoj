@@ -23,16 +23,16 @@ export class NotebookModule extends BaseModule {
          'status-bar': () => import('./components/NoteStatusBar.vue'),
         },
       },
-      // {
-      //   path: '/notes/:id',
-      //   name: 'note-view',
-      //   components: {
-      //     default: () => import('./components/NoteEditor.vue'),
-      //     sidebar: () => import('./components/NoteList.vue'),
-      //     toolbar: () => import('./components/NoteToolbar.vue'),
-      //     'status-bar': () => import('./components/NoteStatusBar.vue'),
-      //   },
-      // },
+      {
+        path: '/notes/:id',
+        name: 'note-view',
+        components: {
+          default: () => import('./components/NoteEditor.vue'),
+          sidebar: () => import('./components/NoteList.vue'),
+          toolbar: () => import('./components/NoteToolbar.vue'),
+          'status-bar': () => import('./components/NoteStatusBar.vue'),
+        },
+      },
     ]
   }
 }
