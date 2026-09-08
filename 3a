@@ -1,0 +1,92 @@
+<script setup lang="ts">
+import { ref, computed, nextTick, onMounted } from "vue";
+import { useRouter, useRoute } from "vue-router";
+import { Icon } from "@iconify/vue";
+import { useNotes } from "../composables/useNotes.ts";
+import type { INote } from "../composables/useNotes.ts";
+
+import { NaojTreeView } from "@naoj/components";
+
+const router = useRouter();
+const route = useRoute();
+const { notes, isLoading, loadNotes, createNote, updateNote, deleteNote, duplicateNote } =
+  useNotes();
+
+// Options menu state
+const menuOpenId = ref<number | null>(null);
+
+const actions = ref({
+  create: {
+    isActive: false
+  }
+})
+
+function handleCreate(path: string) {
+  createNote(path)
+}
+
+onMounted(loadNotes);
+</script>
+
+<template>
+  <div
+    class="flex flex-col h-full bg-stone-50 dark:bg-stone-900 select-none"
+    @click="menuOpenId = null"
+  >
+    <!-- Sidebar header -->
+    <div class="header justify-center">
+
+      <button
+        :aria-selected="actions.create.isActive" @click.stop="actions.create.isActive = !actions.create.isActive"
+        class="btn size-8 rounded"
+        title="Create note"
+      >
+        <Icon icon="lucide:plus" height="16" />
+      </button>
+    </div>
+
+    <div class="px-2 py-1">
+      <div v-if="actions.create.isActive" class="flex flex-col">
+        <form @submit.prevent="handleCreate" class="flex items-center gap-2">
+          <input
+            type="text"
+            placeholder="Note title..."
+            class="w-full p-2 text-sm focus:outline-none"
+            required
+          />
+          <button class="btn size-8 rounded" title="Create note" type="submit">
+            <Icon icon="lucide:plus" height="16" />
+          </button>
+        </form>
+        <div class="text-xs italic opacity-60">
+          Use '/' to create the notes under a directory. (eg. 'directory/note')
+        </div>
+      </div>
+    </div>
+
+    <!-- Tree -->
+    <div class="flex-1 min-h-0 overflow-y-auto px-2 py-2">
+      <NaojTreeView :items="[]"> </NaojTreeView>
+
+      <!-- Empty state -->
+      <div
+        v-if="!notes.length && !isLoading"
+        class="mt-4 flex flex-col items-center gap-2 py-6 text-stone-300 dark:text-stone-700"
+      >
+        <Icon icon="material-symbols:edit-note-outline-rounded" height="28" />
+        <p class="text-xs text-stone-400 dark:text-stone-500">No notes yet</p>
+      </div>
+    </div>
+
+    <!-- New note button (bottom, compact) -->
+    <div class="flex-shrink-0 border-t border-stone-200 dark:border-stone-800 p-2">
+      <button
+        class="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-medium text-stone-400 dark:text-stone-500 hover:text-orange-500 dark:hover:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/20 transition-colors cursor-pointer"
+        @click.stop="handleCreate"
+      >
+        <Icon icon="material-symbols:add-rounded" height="14" />
+        New note
+      </button>
+    </div>
+  </div>
+</template>

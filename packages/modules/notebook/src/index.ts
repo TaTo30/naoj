@@ -4,6 +4,9 @@ import type { RouteRecordRaw } from 'vue-router'
 import { notesTable } from './schema.ts'
 import rawManifest from '../manifest.json'
 
+import "./main.css"
+import "floating-vue/style.css"
+
 export class NotebookModule extends BaseModule {
   readonly manifest: IModuleManifest = validateManifest(rawManifest)
   readonly tables: ITableSchema[] = [notesTable]
@@ -17,19 +20,19 @@ export class NotebookModule extends BaseModule {
           default: () => import('./components/NoteEditor.vue'),
           sidebar: () => import('./components/NoteList.vue'),
           toolbar: () => import('./components/NoteToolbar.vue'),
-          'status-bar': () => import('./components/NoteStatusBar.vue'),
+         'status-bar': () => import('./components/NoteStatusBar.vue'),
         },
       },
-      {
-        path: '/notes/:id',
-        name: 'note-view',
-        components: {
-          default: () => import('./components/NoteEditor.vue'),
-          sidebar: () => import('./components/NoteList.vue'),
-          toolbar: () => import('./components/NoteToolbar.vue'),
-          'status-bar': () => import('./components/NoteStatusBar.vue'),
-        },
-      },
+      // {
+      //   path: '/notes/:id',
+      //   name: 'note-view',
+      //   components: {
+      //     default: () => import('./components/NoteEditor.vue'),
+      //     sidebar: () => import('./components/NoteList.vue'),
+      //     toolbar: () => import('./components/NoteToolbar.vue'),
+      //     'status-bar': () => import('./components/NoteStatusBar.vue'),
+      //   },
+      // },
     ]
   }
 }

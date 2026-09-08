@@ -7,6 +7,8 @@
     "node": ">=20.0.0"
   },
   "scripts": {
-    "dev": "pnpm --filter naoj run dev"
+    "dev": "pnpm --filter naoj run dev",
+    "build": "pnpm --filter naoj run build",
+    "preview": "pnpm --filter naoj run preview"
   }
 }

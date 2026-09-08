@@ -27,19 +27,30 @@ export function useNotes() {
         .where("deleted", "=", 0)
         .orderBy("title", "ASC")
         .all();
+        console.log(_notes.value)
     } finally {
       _isLoading.value = false;
     }
   }
 
-  async function createNote(path = "/"): Promise<number> {
+  async function createNote(path: string): Promise<number> {
+    let normalizedPath = path.trim();
+    if (normalizedPath === "")
+      normalizedPath = "untitled"
+
+    const pathParts = normalizedPath
+      .split("/")
+      .filter(val => val !== "")
+
+
     const id = await core.from<INote>("notebook_notes").insert({
-      title: "Untitled",
+      title: pathParts[pathParts.length - 1],
       content: "",
       tags: "[]",
-      path,
+      path: "/" + pathParts.join("/"),
       deleted: 0,
     });
+
     await loadNotes();
     return Number(id);
   }

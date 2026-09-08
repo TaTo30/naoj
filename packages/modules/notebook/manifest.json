@@ -2,7 +2,7 @@
   "name": "notebook",
   "version": "1.0.0",
   "description": "Markdown notebook module",
-  "icon": "📝",
+  "icon": "material-symbols:edit-note-rounded",
   "primaryRoute": "/notes",
   "tables": ["notes"],
   "components": {

@@ -3,6 +3,10 @@ import App from "./App.vue";
 import router from "./router";
 import initSqlJs from "sql.js";
 import sqlWasmUrl from "sql.js/dist/sql-wasm.wasm?url";
+
+import { addCollection } from "@iconify/vue";
+import lucideIcons from "@iconify-json/lucide/icons.json";
+
 import {
   BrowserSQLAdapter,
   CoreAPI,
@@ -15,6 +19,10 @@ import {
 
 // Core modules
 import { NotebookModule } from "@naoj/notebook";
+import "@naoj/notebook/style.css";
+
+// Register icon collection locally so icons work offline in prod
+addCollection(lucideIcons as Parameters<typeof addCollection>[0]);
 
 async function bootstrap() {
   const adapter = new BrowserSQLAdapter(initSqlJs, sqlWasmUrl);

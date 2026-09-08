@@ -5,7 +5,8 @@
   "type": "module",
   "main": "./src/index.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./style.css": "./src/main.css"
   },
   "scripts": {
     "build": "vite build",
@@ -14,11 +15,15 @@
   "dependencies": {
     "@naoj/components": "workspace:*",
     "@naoj/core": "workspace:*",
-    "@iconify/vue": "^5.0.1",
+    "@tailwindcss/vite": "^4.3.3",
+    "floating-vue": "^5.2.2",
+    "tailwindcss": "^4.3.3",
     "vue": "^3.5.0",
     "vue-router": "^5.0.0"
   },
   "devDependencies": {
+    "@iconify-json/lucide": "^1.2.130",
+    "@iconify/vue": "^5.0.1",
     "@types/node": "^24.13.3",
     "@vitejs/plugin-vue": "^6.0.8",
     "@vue/tsconfig": "^0.9.1",

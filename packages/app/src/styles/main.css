@@ -1,18 +1,24 @@
 @import "tailwindcss";
 
-/* Class-based dark mode — <html class="dark"> toggled by JS */
-@variant dark (&:where(.dark, .dark *));
+@source "../../../modules";
+@source "../../../components";
 
-/* Native controls respect the active color scheme */
-:root {
-  color-scheme: light;
+@layer base {
+  button {
+    cursor: pointer;
+  }
 }
 
-.dark {
-  color-scheme: dark;
+@layer components {
+  .btn {
+    @apply flex items-center justify-center text-stone-500 hover:text-orange-500 hover:bg-stone-200 dark:text-stone-400 dark:hover:text-orange-400 dark:hover:bg-stone-700/60 transition-all duration-200
+  }
+
+  .header {
+    @apply h-10 shrink-0 flex items-center gap-2 px-2 bg-white dark:bg-stone-900 border-b border-stone-200 dark:border-stone-800
+  }
 }
 
-/* Smooth theme transitions */
 *,
 *::before,
 *::after {
@@ -21,51 +27,3 @@
   transition-timing-function: ease;
 }
 
-/* Tiptap editor content area */
-.tiptap {
-  outline: none;
-  min-height: 100%;
-}
-
-.tiptap p {
-  margin-bottom: 0.75rem;
-}
-
-.tiptap h1 {
-  font-size: 1.75rem;
-  font-weight: 700;
-  margin-bottom: 0.5rem;
-}
-
-.tiptap h2 {
-  font-size: 1.4rem;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-}
-
-.tiptap h3 {
-  font-size: 1.15rem;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-}
-
-.tiptap code {
-  font-family: ui-monospace, monospace;
-  font-size: 0.875em;
-  background: rgba(127, 127, 127, .12);
-  padding: 0.125rem 0.3rem;
-  border-radius: 3px;
-}
-
-.tiptap pre {
-  background: rgba(127, 127, 127, .1);
-  border-radius: 0.5rem;
-  padding: 1rem;
-  margin-bottom: 0.75rem;
-  overflow-x: auto;
-}
-
-.tiptap pre code {
-  background: none;
-  padding: 0;
-}

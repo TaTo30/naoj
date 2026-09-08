@@ -51,7 +51,8 @@ export class BrowserSQLAdapter implements IDatabaseAdapter {
     stmt.bind(safe as SqlParam[]);
     const rows: T[] = [];
     while (stmt.step()) {
-      rows.push(stmt.getAsObject({}) as T);
+      const obj = stmt.getAsObject()
+      rows.push(obj as T);
     }
     stmt.free();
     return rows;

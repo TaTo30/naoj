@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useRoute } from "vue-router";
-import { FileText } from "lucide-vue-next";
+import { Icon } from "@iconify/vue";
 import { useNotes } from "../composables/useNotes.ts";
 
 const route = useRoute();
@@ -15,11 +15,15 @@ const activeNote = computed(() => {
 </script>
 
 <template>
-  <div class="flex items-center gap-2 px-3 h-full text-sm">
-    <FileText :size="14" class="text-orange-400 flex-shrink-0" />
-    <span v-if="activeNote" class="font-medium text-stone-700 dark:text-stone-200 truncate">
+  <div class="flex items-center gap-1.5 px-1 h-full text-sm min-w-0">
+    <Icon
+      icon="material-symbols:edit-note-rounded"
+      height="15"
+      class="text-orange-400 flex-shrink-0"
+    />
+    <span v-if="activeNote" class="font-medium text-stone-600 dark:text-stone-300 truncate">
       {{ activeNote.title || "Untitled" }}
     </span>
-    <span v-else class="text-stone-400 dark:text-stone-500">Notes</span>
+    <span v-else class="text-stone-400 dark:text-stone-500">Notebook</span>
   </div>
 </template>

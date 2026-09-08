@@ -1,10 +1,11 @@
 import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
+import tailwindcss from '@tailwindcss/vite'
 
 // Build config for distributing the module as a standalone compiled bundle
 export default defineConfig({
-  plugins: [vue()],
+  plugins: [vue(), tailwindcss()],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
@@ -15,6 +16,7 @@ export default defineConfig({
       entry: './src/index.ts',
       formats: ['es'],
       fileName: 'index',
+      cssFileName: "style"
     },
     rollupOptions: {
       // Shared deps are injected at runtime by the host app; do not bundle them

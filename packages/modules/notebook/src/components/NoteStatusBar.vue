@@ -2,7 +2,7 @@
 import { computed } from "vue";
 import { useNotes } from "../composables/useNotes.ts";
 import { useRoute } from "vue-router";
-import { NotebookText, Hash } from "lucide-vue-next";
+import { Icon } from "@iconify/vue";
 
 const route = useRoute();
 const { notes, noteCount } = useNotes();
@@ -20,14 +20,17 @@ const wordCount = computed(() => {
 </script>
 
 <template>
-  <div class="flex items-center gap-4 px-4 h-full text-xs text-stone-500 dark:text-stone-400">
+  <div class="flex items-center gap-3 px-4 h-full text-xs text-stone-400 dark:text-stone-500">
     <span class="flex items-center gap-1">
-      <NotebookText :size="11" />
+      <Icon icon="material-symbols:library-books-outline-rounded" height="12" />
       {{ noteCount }} {{ noteCount === 1 ? "note" : "notes" }}
     </span>
-    <span v-if="activeNote" class="flex items-center gap-1">
-      <Hash :size="11" />
-      {{ wordCount }} {{ wordCount === 1 ? "word" : "words" }}
-    </span>
+    <template v-if="activeNote">
+      <span class="text-stone-300 dark:text-stone-700">·</span>
+      <span class="flex items-center gap-1">
+        <Icon icon="material-symbols:format-size-rounded" height="12" />
+        {{ wordCount }} {{ wordCount === 1 ? "word" : "words" }}
+      </span>
+    </template>
   </div>
 </template>
