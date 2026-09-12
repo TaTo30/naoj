@@ -25,6 +25,8 @@ import { TableKit } from "@tiptap/extension-table"
 import { Details, DetailsSummary, DetailsContent } from "@tiptap/extension-details"
 import { common, createLowlight } from "lowlight"
 
+import NaojEditorCommand from "./NaojEditorCommand.vue"
+
 import  "./main.css"
 import { ref, useTemplateRef, watchEffect } from "vue";
 
@@ -239,13 +241,35 @@ function toggleMark(mark: string, attrs = {}) {
     .run()
 }
 
+function toggleNode(node: string, attrs = {}) {
+  return editor
+    .value
+    ?.chain()
+    .deleteRange(commandTriggerSelection.value)
+    .focus()
+    .toggleNode(node, 'paragraph', attrs)
+    .run()
+}
+
+function toggleList(node: string, attrs = {}) {
+  return editor
+    .value
+    ?.chain()
+    .deleteRange(commandTriggerSelection.value)
+    .focus()
+    .toggleList(node, 'listItem', true, attrs)
+    .run()
+}
 
 function shouldshowInline({ state }: any) {
-    commandTriggerSelection.value = {}
     const { selection } = state
     const { $anchor } = selection
 
-    const textContent = $anchor.parent.content?.content?.map((node: any) => node.text || "").join("")
+    const textContent = $anchor
+      .parent
+      .content
+      ?.content
+      ?.map((node: any) => node.text || "").join("")
 
     if (textContent.endsWith("/") && textContent !== "/") {
       const parentSize = $anchor.parent.content.size
@@ -264,14 +288,17 @@ function shouldshowInline({ state }: any) {
 }
 
 function shouldshowBlock({ state }: any) {
-    commandTriggerSelection.value = {}
     const { selection } = state
     const { $anchor } = selection
     const isRootDepth = $anchor.depth === 1
 
     const textContent = $anchor.parent.content?.content?.[0]?.text || ""
     if (isRootDepth && textContent === "/") {
-      commandTriggerSelection.value = selection
+      console.log(selection)
+      commandTriggerSelection.value = {
+        from: selection.ranges[0].$from.pos - 1,
+        to: selection.ranges[0].$to.pos
+      }
       return true
     }
 
@@ -323,11 +350,91 @@ const vCommandNavigation = {
       :editor="editor"
       pluginKey="naoj-editor-block-commands"
       :shouldShow="shouldshowBlock"
+      class="flex flex-col gap-2 items-start p-2 bg-stone-800 rounded-lg"
     >
-        <button>hola1</button>
-        <button>hola1</button>
-        <button>hola2</button>
-        <button>hola2</button>
+      <NaojEditorCommand
+        icon="lucide:heading-1"
+        label="Heading 1"
+        command="Ctrl+Alt+1"
+        spec="#"
+        @click="toggleNode('heading', { level: 1 })"
+      >
+        <template #header>
+          <span class="mt-2 mb-1">
+            Block Content
+          </span>
+        </template>
+      </NaojEditorCommand>
+      <NaojEditorCommand
+        icon="lucide:heading-2"
+        label="Heading 2"
+        command="Ctrl+Alt+1"
+        spec="##"
+        @click="toggleNode('heading', { level: 2 })"
+      />
+      <NaojEditorCommand
+        icon="lucide:heading-3"
+        label="Heading 3"
+        command="Ctrl+Alt+3"
+        spec="###"
+        @click="toggleNode('heading', { level: 3 })"
+      />
+      <NaojEditorCommand
+        icon="lucide:heading-3"
+        label="Heading 3"
+        command="Ctrl+Alt+3"
+        spec="###"
+        @click="toggleNode('heading', { level: 3 })"
+      />
+      <NaojEditorCommand
+        icon="lucide:list"
+        label="Bullet List"
+        command="Ctrl+Shift+8"
+        spec="-"
+        @click="toggleList('bulletList')"
+      />
+      <NaojEditorCommand
+        icon="lucide:list-ordered"
+        label="Ordered List"
+        command="Ctrl+Shift+7"
+        spec="1. "
+        @click="toggleList('orderedList')"
+      />
+      <NaojEditorCommand
+        icon="lucide:italic"
+        label="Italic"
+        command="Ctrl+I"
+        spec="*abc*/_abc_"
+        @click="toggleMark('italic')"
+      >
+        <template #header>
+          <span class="mt-2 mb-1">
+            Marked Content
+          </span>
+        </template>
+      </NaojEditorCommand>
+      <NaojEditorCommand
+        icon="lucide:underline"
+        label="Underline"
+        command="Ctrl+U"
+        spec=""
+        @click="toggleMark('underline')"
+      />
+      <NaojEditorCommand
+        icon="lucide:code"
+        label="Code"
+        command="Ctrl+E"
+        spec="`abc`"
+        @click="toggleMark('code')"
+      />
+      <NaojEditorCommand
+        icon="lucide:bold"
+        label="Strike"
+        command="Ctrl+Shift+S"
+        spec="~~abc~~"
+        @click="toggleMark('strike')"
+      />
+
     </FloatingMenu>
     <FloatingMenu
       v-command-navigation
@@ -335,13 +442,43 @@ const vCommandNavigation = {
       :options="{placement: 'bottom-start'}"
       :editor="editor"
       :shouldShow="shouldshowInline"
-      class="flex flex-col gap-2 items-start p-2"
+      class="flex flex-col gap-2 items-start p-2 bg-stone-800 rounded-lg"
     >
-      <button @click="toggleMark('bold')">Bold</button>
-      <button @click="toggleMark('italic')">Italic</button>
-      <button @click="toggleMark('underline')">Underline</button>
-      <button @click="toggleMark('code')">Code</button>
-      <button @click="toggleMark('strike')">Strike</button>
+      <NaojEditorCommand
+        icon="lucide:bold"
+        label="Bold"
+        command="Ctrl+B"
+        spec="**abc**"
+        @click="toggleMark('bold')"
+      />
+      <NaojEditorCommand
+        icon="lucide:italic"
+        label="Italic"
+        command="Ctrl+I"
+        spec="*abc*/_abc_"
+        @click="toggleMark('italic')"
+      />
+      <NaojEditorCommand
+        icon="lucide:underline"
+        label="Underline"
+        command="Ctrl+U"
+        spec=""
+        @click="toggleMark('underline')"
+      />
+      <NaojEditorCommand
+        icon="lucide:code"
+        label="Code"
+        command="Ctrl+E"
+        spec="`abc`"
+        @click="toggleMark('code')"
+      />
+      <NaojEditorCommand
+        icon="lucide:bold"
+        label="Strike"
+        command="Ctrl+Shift+S"
+        spec="~~abc~~"
+        @click="toggleMark('strike')"
+      />
     </FloatingMenu>
   </div>
 </template>
