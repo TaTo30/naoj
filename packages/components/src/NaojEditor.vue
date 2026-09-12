@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useEditor, EditorContent} from "@tiptap/vue-3"
+import { useEditor, EditorContent, insertContent} from "@tiptap/vue-3"
 import { FloatingMenu } from "@tiptap/vue-3/menus"
 import { Markdown } from "@tiptap/markdown"
 import { Document } from "@tiptap/extension-document";
@@ -19,8 +19,6 @@ import { Blockquote } from "@tiptap/extension-blockquote"
 import { Link } from "@tiptap/extension-link"
 import { Emoji } from "@tiptap/extension-emoji"
 import { Strike } from "@tiptap/extension-strike"
-import { Superscript } from "@tiptap/extension-superscript"
-import { Subscript } from "@tiptap/extension-subscript"
 import { Highlight } from "@tiptap/extension-highlight"
 import { Code } from "@tiptap/extension-code"
 import { TableKit } from "@tiptap/extension-table"
@@ -28,6 +26,7 @@ import { Details, DetailsSummary, DetailsContent } from "@tiptap/extension-detai
 import { common, createLowlight } from "lowlight"
 
 import  "./main.css"
+import { ref, useTemplateRef, watchEffect } from "vue";
 
 const modelValue = defineModel()
 
@@ -82,6 +81,9 @@ This demo showcases **bidirectional** markdown support in Tiptap with extended f
 </ul>
 
 ### Code
+I am wanto to check something [^1]
+
+[^1]: This is a footnote.
 
 Tiptap supports ~inline code~ and full code blocks:
 
@@ -187,7 +189,13 @@ You can also edit in the editor and see the markdown update.
     Paragraph,
     Text,
     TextStyleKit,
-    Markdown,
+    Markdown.configure({
+      markedOptions: {
+        gfm: true,
+        breaks: false,
+        pedantic: false
+      }
+    }),
     // Block content extensions
     Heading,
     ListKit,
@@ -207,8 +215,6 @@ You can also edit in the editor and see the markdown update.
     Italic,
     Bold,
     Strike,
-    Superscript,
-    Subscript,
     Highlight,
     Code,
     Link,
@@ -217,37 +223,126 @@ You can also edit in the editor and see the markdown update.
   contentType: "markdown"
 })
 
-function shouldshow({ state }: { state: any }) {
+const commandTriggerSelection = ref<any>({})
+
+function getMarkdown() {
+  console.log(editor?.value?.getMarkdown())
+}
+
+function toggleMark(mark: string, attrs = {}) {
+  return editor
+    .value
+    ?.chain()
+    .deleteRange(commandTriggerSelection.value)
+    .focus()
+    .toggleMark(mark, attrs)
+    .run()
+}
+
+
+function shouldshowInline({ state }: any) {
+    commandTriggerSelection.value = {}
+    const { selection } = state
+    const { $anchor } = selection
+
+    const textContent = $anchor.parent.content?.content?.map((node: any) => node.text || "").join("")
+
+    if (textContent.endsWith("/") && textContent !== "/") {
+      const parentSize = $anchor.parent.content.size
+      const parentOffset = $anchor.parentOffset
+      if (parentOffset === parentSize) {
+        console.log(selection)
+        commandTriggerSelection.value = {
+          from: selection.ranges[0].$from.pos - 1,
+          to: selection.ranges[0].$to.pos
+        }
+        return true
+      }
+    }
+
+    return false
+}
+
+function shouldshowBlock({ state }: any) {
+    commandTriggerSelection.value = {}
     const { selection } = state
     const { $anchor } = selection
     const isRootDepth = $anchor.depth === 1
 
     const textContent = $anchor.parent.content?.content?.[0]?.text || ""
-
-    if (isRootDepth && textContent === "/"){
+    if (isRootDepth && textContent === "/") {
+      commandTriggerSelection.value = selection
       return true
     }
 
-    if (textContent.endsWith("/")) {
-      const parentSize = $anchor.parent.content.size
-      const parentOffset = $anchor.parentOffset
-      if (parentOffset === parentSize) {
-        return true
-      }
-    }
     return false
 }
 
+const vCommandNavigation = {
+  mounted(el: HTMLDivElement) {
+    document.addEventListener("keydown", (event: KeyboardEvent) => {
+      if (event.key === "Tab") {
+        const isVisible = el.style.visibility !== "hidden"
+        if (isVisible) {
+          event.preventDefault()
+          event.stopPropagation()
+          const currentFocusedCommand = [...el.childNodes]
+            .findIndex((val) => (val as HTMLElement).ariaSelected === "true")
+
+          if (currentFocusedCommand === -1) {
+            const cel = el.childNodes[0] as HTMLElement
+            cel.focus()
+            cel.setAttribute("aria-selected", "true")
+          } else {
+            const nextFocusedCommand = (currentFocusedCommand + 1) % el.childNodes.length
+            const cel = el.childNodes[currentFocusedCommand] as HTMLElement
+            const nel = el.childNodes[nextFocusedCommand] as HTMLElement
+            nel.focus()
+            nel.setAttribute("aria-selected", "true")
+            cel.setAttribute("aria-selected", "false")
+          }
+        }
+      } else {
+        el.childNodes.forEach((val) => {
+          (val as HTMLElement).setAttribute("aria-selected", "false")
+        })
+      }
+    })
+  }
+}
 </script>
 
 <template>
+  {{commandTriggerSelection}}
+  <button @click="getMarkdown">md</button>
   <div v-if="editor">
-    <editor-content :editor="editor" />
-      <FloatingMenu :editor="editor" :shouldShow="shouldshow">
-        <button>
-          hola
-          </button>
-      </FloatingMenu>
+    <EditorContent :editor="editor" />
+    <FloatingMenu
+      v-command-navigation
+      :options="{placement: 'bottom-start'}"
+      :editor="editor"
+      pluginKey="naoj-editor-block-commands"
+      :shouldShow="shouldshowBlock"
+    >
+        <button>hola1</button>
+        <button>hola1</button>
+        <button>hola2</button>
+        <button>hola2</button>
+    </FloatingMenu>
+    <FloatingMenu
+      v-command-navigation
+      pluginKey="naoj-editor-inline-commands"
+      :options="{placement: 'bottom-start'}"
+      :editor="editor"
+      :shouldShow="shouldshowInline"
+      class="flex flex-col gap-2 items-start p-2"
+    >
+      <button @click="toggleMark('bold')">Bold</button>
+      <button @click="toggleMark('italic')">Italic</button>
+      <button @click="toggleMark('underline')">Underline</button>
+      <button @click="toggleMark('code')">Code</button>
+      <button @click="toggleMark('strike')">Strike</button>
+    </FloatingMenu>
   </div>
 </template>
 
