@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { useEditor, EditorContent, insertContent} from "@tiptap/vue-3"
+import { useEditor, EditorContent} from "@tiptap/vue-3"
+import { getMarksBetween } from "@tiptap/core"
 import { FloatingMenu } from "@tiptap/vue-3/menus"
 import { Markdown } from "@tiptap/markdown"
 import { Document } from "@tiptap/extension-document";
@@ -28,12 +29,12 @@ import { common, createLowlight } from "lowlight"
 import NaojEditorCommand from "./NaojEditorCommand.vue"
 
 import  "./main.css"
-import { ref, useTemplateRef, watchEffect } from "vue";
+import { onMounted, ref, useTemplateRef, watchEffect } from "vue";
 
 const modelValue = defineModel()
 
 const lowlight = createLowlight(common)
-
+const editorContainer = useTemplateRef("editorContainer")
 
 const editor = useEditor({
   content: `
@@ -191,6 +192,7 @@ You can also edit in the editor and see the markdown update.
     Paragraph,
     Text,
     TextStyleKit,
+    HardBreak,
     Markdown.configure({
       markedOptions: {
         gfm: true,
@@ -202,10 +204,9 @@ You can also edit in the editor and see the markdown update.
     Heading,
     ListKit,
     TableKit,
-    HardBreak,
-    Details,
-    DetailsSummary,
-    DetailsContent,
+    //details,
+    //detailssummary,
+    //detailsContent,
     CodeBlockLowlight.configure({
       lowlight
     }),
@@ -226,9 +227,21 @@ You can also edit in the editor and see the markdown update.
 })
 
 const commandTriggerSelection = ref<any>({})
+const activeMarks = ref<any>([])
 
-function getMarkdown() {
-  console.log(editor?.value?.getMarkdown())
+function updateMarks() {
+  const { state } = editor.value!
+  const { from, to } = state.selection
+
+  activeMarks.value = getMarksBetween(from, to, state.doc)
+}
+
+function command() {
+  return editor
+    .value
+    ?.chain()
+    .deleteRange(commandTriggerSelection.value)
+    .focus()
 }
 
 function toggleMark(mark: string, attrs = {}) {
@@ -248,6 +261,16 @@ function toggleNode(node: string, attrs = {}) {
     .deleteRange(commandTriggerSelection.value)
     .focus()
     .toggleNode(node, 'paragraph', attrs)
+    .run()
+}
+
+function toggleWrap(node: string, attrs = {}) {
+  return editor
+    .value
+    ?.chain()
+    .deleteRange(commandTriggerSelection.value)
+    .focus()
+    .toggleWrap(node, attrs)
     .run()
 }
 
@@ -275,7 +298,6 @@ function shouldshowInline({ state }: any) {
       const parentSize = $anchor.parent.content.size
       const parentOffset = $anchor.parentOffset
       if (parentOffset === parentSize) {
-        console.log(selection)
         commandTriggerSelection.value = {
           from: selection.ranges[0].$from.pos - 1,
           to: selection.ranges[0].$to.pos
@@ -294,7 +316,6 @@ function shouldshowBlock({ state }: any) {
 
     const textContent = $anchor.parent.content?.content?.[0]?.text || ""
     if (isRootDepth && textContent === "/") {
-      console.log(selection)
       commandTriggerSelection.value = {
         from: selection.ranges[0].$from.pos - 1,
         to: selection.ranges[0].$to.pos
@@ -321,7 +342,10 @@ const vCommandNavigation = {
             cel.focus()
             cel.setAttribute("aria-selected", "true")
           } else {
-            const nextFocusedCommand = (currentFocusedCommand + 1) % el.childNodes.length
+            const nextFocusedCommand = event.shiftKey
+              ? (currentFocusedCommand - 1) % el.childNodes.length
+              : (currentFocusedCommand + 1) % el.childNodes.length
+
             const cel = el.childNodes[currentFocusedCommand] as HTMLElement
             const nel = el.childNodes[nextFocusedCommand] as HTMLElement
             nel.focus()
@@ -329,28 +353,43 @@ const vCommandNavigation = {
             cel.setAttribute("aria-selected", "false")
           }
         }
-      } else {
-        el.childNodes.forEach((val) => {
-          (val as HTMLElement).setAttribute("aria-selected", "false")
-        })
+      } else if (event.key === "Escape") {
+        const isVisible = el.style.visibility !== "hidden"
+        if (isVisible) {
+          event.preventDefault()
+          event.stopPropagation()
+          editor.value
+            ?.chain()
+            .deleteRange(commandTriggerSelection.value)
+            .focus()
+            .run()
+        }
       }
     })
   }
 }
+
+onMounted(() => {
+  editor.value?.on("selectionUpdate", updateMarks)
+  editor.value?.on("transaction", updateMarks)
+})
+
 </script>
 
 <template>
-  {{commandTriggerSelection}}
-  <button @click="getMarkdown">md</button>
-  <div v-if="editor">
+  <div>
+    {{activeMarks}}
+  </div>
+  <div ref="editorContainer" v-if="editor">
     <EditorContent :editor="editor" />
     <FloatingMenu
       v-command-navigation
       :options="{placement: 'bottom-start'}"
+      :appendTo="editorContainer!"
       :editor="editor"
       pluginKey="naoj-editor-block-commands"
       :shouldShow="shouldshowBlock"
-      class="flex flex-col gap-2 items-start p-2 bg-stone-800 rounded-lg"
+      class="flex flex-col gap-2 items-start p-2 bg-stone-800 rounded-lg max-h-2/4 overflow-y-auto"
     >
       <NaojEditorCommand
         icon="lucide:heading-1"
@@ -380,11 +419,11 @@ const vCommandNavigation = {
         @click="toggleNode('heading', { level: 3 })"
       />
       <NaojEditorCommand
-        icon="lucide:heading-3"
-        label="Heading 3"
-        command="Ctrl+Alt+3"
-        spec="###"
-        @click="toggleNode('heading', { level: 3 })"
+        icon="lucide:heading-4"
+        label="Heading 4"
+        command="Ctrl+Alt+4"
+        spec="####"
+        @click="toggleNode('heading', { level: 4 })"
       />
       <NaojEditorCommand
         icon="lucide:list"
@@ -399,6 +438,31 @@ const vCommandNavigation = {
         command="Ctrl+Shift+7"
         spec="1. "
         @click="toggleList('orderedList')"
+      />
+      <NaojEditorCommand
+        icon="lucide:table"
+        label="Table"
+        @click="editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()"
+      />
+      <NaojEditorCommand
+        icon="lucide:quote"
+        label="Blockquote"
+        command="Ctrl+Shift+B"
+        spec=">"
+        @click="toggleWrap('blockquote')"
+      />
+      <NaojEditorCommand
+        icon="lucide:code"
+        label="Code Block"
+        command="Ctrl+Shift+C"
+        spec="```"
+        @click="toggleNode('codeBlock')"
+      />
+      <NaojEditorCommand
+        icon="lucide:square-centerline-dashed-vertical"
+        label="Horizontal Rule"
+        spec="---"
+        @click="command()?.setHorizontalRule().run()"
       />
       <NaojEditorCommand
         icon="lucide:italic"
@@ -417,7 +481,6 @@ const vCommandNavigation = {
         icon="lucide:underline"
         label="Underline"
         command="Ctrl+U"
-        spec=""
         @click="toggleMark('underline')"
       />
       <NaojEditorCommand
@@ -462,10 +525,11 @@ const vCommandNavigation = {
         icon="lucide:underline"
         label="Underline"
         command="Ctrl+U"
-        spec=""
         @click="toggleMark('underline')"
       />
       <NaojEditorCommand
+        :ariaSelected="editor.isActive('code')"
+        class="aria-selected:bg-yellow-500!"
         icon="lucide:code"
         label="Code"
         command="Ctrl+E"
