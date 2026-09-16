@@ -12,9 +12,6 @@
 
 <template>
   <button class="flex flex-col w-full" aria-selected="false">
-    <div class="flex justify-start opacity-50 font-semibold text-sm ">
-      <slot name="header" />
-    </div>
     <div class="flex items-center justify-between gap-12">
       <div class="flex items-center justify-start gap-2">
         <div>
