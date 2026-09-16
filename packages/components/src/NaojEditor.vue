@@ -32,15 +32,19 @@ import { Icon } from "@iconify/vue"
 import NaojEditorCommand from "./NaojEditorCommand.vue"
 
 import  "./main.css"
+import "highlight.js/styles/github-dark.css"
 
 const lowlight = createLowlight(common)
+console.log(common)
+
 const keymaps = Extension.create({
   name: "naojKeymaps",
+  // @ts-ignore
   addKeyboardShortcuts() {
     return {
       "Escape": ({editor}) => {
         if (activeMarks.value.length > 0){
-          activeMarks.value.forEach((val) => {
+          activeMarks.value.forEach((val: any) => {
             const activeMark = val.mark.type.name
             editor.chain().focus().toggleMark(activeMark).run()
           })
@@ -77,7 +81,8 @@ const editor = useEditor({
     ListKit,
     TableKit,
     CodeBlockLowlight.configure({
-      lowlight
+      lowlight,
+      defaultLanguage: "plaintext"
     }),
     Image,
     HorizontalRule,
@@ -135,6 +140,16 @@ function promptLink(type: string) {
   }, 0)
 }
 
+function closePromptLink(){
+  linkRequested.value = {
+    type: "link",
+    requested: false,
+    prompt: ""
+  }
+
+  command()!.run()
+}
+
 function toggleLink() {
   if (linkRequested.value.type === "link") {
     if (editor.value?.isActive('link')) {
@@ -157,6 +172,7 @@ function toggleLink() {
       ?.chain()
       .focus()
       .setImage({ src: linkRequested.value.prompt })
+      .setTextSelection(editor.value!.state.selection.from + 1)
       .run()
   }
 
@@ -168,42 +184,26 @@ function toggleLink() {
 }
 
 function toggleMark(mark: string, attrs = {}) {
-  return editor
-    .value
-    ?.chain()
-    .deleteRange(commandTriggerSelection.value)
-    .focus()
-    .toggleMark(mark, attrs)
+  return command()
+    ?.toggleMark(mark, attrs)
     .run()
 }
 
 function toggleNode(node: string, attrs = {}) {
-  return editor
-    .value
-    ?.chain()
-    .deleteRange(commandTriggerSelection.value)
-    .focus()
-    .toggleNode(node, 'paragraph', attrs)
+  return command()
+    ?.toggleNode(node, 'paragraph', attrs)
     .run()
 }
 
 function toggleWrap(node: string, attrs = {}) {
-  return editor
-    .value
-    ?.chain()
-    .deleteRange(commandTriggerSelection.value)
-    .focus()
-    .toggleWrap(node, attrs)
+  return command()
+    ?.toggleWrap(node, attrs)
     .run()
 }
 
 function toggleList(node: string, attrs = {}) {
-  return editor
-    .value
-    ?.chain()
-    .deleteRange(commandTriggerSelection.value)
-    .focus()
-    .toggleList(node, 'listItem', true, attrs)
+  return command()
+    ?.toggleList(node, 'listItem', true, attrs)
     .run()
 }
 
@@ -366,7 +366,7 @@ const blockCommands = [
   {
     icon: "lucide:table",
     label: "Table",
-    action: () => editor.value?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
+    action: () => command()?.insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
   },
   {
     icon: "lucide:image",
@@ -385,7 +385,13 @@ const blockCommands = [
     label: "Code Block",
     command: "Ctrl+Shift+C",
     spec: "```",
-    action: () => toggleNode('codeBlock')
+    action: () => {
+        const currentPos = editor.value!.state.selection.from
+        command()
+        ?.insertContent("```plaintext", { updateSelection: true })
+        .setTextSelection({ from: currentPos + 2, to: currentPos + 12 })
+        .run()
+    }
   },
   {
     icon: "lucide:square-centerline-dashed-vertical",
@@ -432,7 +438,9 @@ onBeforeUnmount(() => {
         </div>
         <div class="flex gap-2">
           <Icon @click="toggleLink" icon="lucide:check" height="20" class="cursor-pointer" />
-          <Icon icon="lucide:check" height="20" class="cursor-pointer" />
+          <button @click="closePromptLink" >
+            <Icon icon="lucide:x" height="20" class="cursor-pointer" />
+          </button>
         </div>
       </div>
     </FloatingMenu>

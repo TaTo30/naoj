@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, computed, nextTick, onBeforeUnmount, watchEffect, onMounted } from "vue";
+import { ref, computed,  watchEffect, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { Icon } from "@iconify/vue";
 import { NaojEditor } from "@naoj/components";
@@ -81,66 +81,9 @@ const editor = new Editor({
 })
 ~~~
 
-### Details
-
-:::details
-
-:::detailsSummary
-What features does Tiptap offer?
-:::
-
-:::detailsContent
-
-- Rich Text Editing
-- Collaborative Editing
-- Markdown Support
-- Content AI
-- Custom Extensions
-- More...
-
-:::
-
-:::
-
-:::details
-
-:::detailsSummary
-Where can I learn how to use Tiptap?
-:::
-
-:::detailsContent
-
-You can learn how to use Tiptap by visiting the [official documentation](https://tiptap.dev/docs).
-
-:::
-
-:::
-
 ### Images
 
 ![Random Image](https://unsplash.it/400/600 "Tiptap Editor")
-
-### Mentions
-
-Hey, [@ id="Madonna"], have you seen [@ id="Tom Cruise"]?
-
-This demo supports **multi-mention** with different trigger characters:
-
-- User mentions with ~@~: [@ id="Lea Thompson"] and [@ id="Cyndi Lauper"]
-- Tag mentions with ~#~: [@ id="bug" char="#"] and [@ id="feature" char="#"]
-
-Try typing ~@~ or ~#~ in the editor to see suggestions!
-
-### Mathematics
-
-Inline math: $E = mc^2$ and $\pi r^2$
-
-Block math:
-
-$$
-40*5/38
-$$
-
 
 ### Inline Code in Tables
 
