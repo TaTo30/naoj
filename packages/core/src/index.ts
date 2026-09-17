@@ -45,7 +45,7 @@ export {
   CORE_API_KEY,
   EVENT_BUS_KEY,
   MODULE_REGISTRY_KEY,
-  useCoreAPI,
+  useDatabase,
   useEventBus,
   useModuleRegistry,
 } from "./composables/useCore.ts";

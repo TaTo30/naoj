@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import type { NaojTreeViewNode } from './NaojTreeView.vue';
 
 const emit = defineEmits(['selected'])
@@ -10,6 +10,7 @@ const props = defineProps<{
   fileFlag?: boolean
 }>()
 
+const isDirOpen = ref(false)
 const isDir = computed(() => {
   return Object
     .keys(props.node)
@@ -48,7 +49,8 @@ const slotProps = computed(() => {
     isFile: isFile.value,
     label: props.label,
     id: props.node.__id,
-    level: props.node.__level
+    level: props.node.__level,
+    isOpen: isDirOpen.value,
   }
 })
 
@@ -67,7 +69,7 @@ const slotProps = computed(() => {
       </NaojTreeViewNode>
     </div>
     <div v-else>
-      <details v-if="isDir && !fileFlag" open>
+      <details @click.stop="isDirOpen = !isDirOpen" v-if="isDir && !fileFlag" class="group">
         <slot name="directory" v-bind="slotProps">
           <summary>
             <span>
@@ -86,7 +88,7 @@ const slotProps = computed(() => {
           </NaojTreeViewNode>
         </div>
       </details>
-      <div v-else="isFile">
+      <div @click.stop="" v-else="isFile">
         <slot name="file" v-bind="slotProps">
           <span>
             {{props.label}}

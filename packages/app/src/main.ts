@@ -18,8 +18,7 @@ import {
 } from "@naoj/core";
 
 // Core modules
-import { NotebookModule } from "@naoj/notebook";
-import "@naoj/notebook/style.css";
+import { NotebookModule } from "@naoj-modules/notebook";
 
 // Register icon collection locally so icons work offline in prod
 addCollection(lucideIcons as Parameters<typeof addCollection>[0]);

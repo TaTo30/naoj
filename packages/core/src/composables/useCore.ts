@@ -7,7 +7,7 @@ export const CORE_API_KEY: InjectionKey<CoreAPI> = Symbol('coreAPI')
 export const EVENT_BUS_KEY: InjectionKey<EventBus> = Symbol('eventBus')
 export const MODULE_REGISTRY_KEY: InjectionKey<ModuleRegistry> = Symbol('moduleRegistry')
 
-export function useCoreAPI(): CoreAPI {
+export function useDatabase(): CoreAPI {
   const core = inject(CORE_API_KEY)
   if (!core) throw new Error('CoreAPI not provided. Did you call app.provide(CORE_API_KEY, core)?')
   return core

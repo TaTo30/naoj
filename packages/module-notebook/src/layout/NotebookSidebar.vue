@@ -5,11 +5,11 @@ import { useRouter } from "vue-router"
 import { Icon } from "@iconify/vue";
 import { Dropdown } from "floating-vue"
 
-import { NaojTreeView } from "@naoj/components";
+import  NaojTreeView  from "../components/NaojTreeView.vue";
 
-import { useNotes } from "../composables/useNotes.ts";
+import  useNotebook from "../composables/useNotebook";
 
-const { notes, isLoading, loadNotes, createNote } = useNotes();
+const { files, isLoading, refresh } = useNotebook();
 const { push } = useRouter()
 
 const actions = ref({
@@ -17,7 +17,7 @@ const actions = ref({
 })
 
 const notesPath = computed(() => {
-  return notes.value.map(val => {
+  return files.value.map(val => {
     return {
       id: val.id.toString(),
       path: val.path
@@ -29,24 +29,25 @@ async function handleCreate(evt: Event) {
   const target = evt.target as HTMLFormElement
   const formData = new FormData(target)
 
-  await createNote(formData.get("input-create-note") as string)
+  // await createNote(formData.get("input-create-note") as string)
 
   actions.value.create = false
 }
 
-onMounted(loadNotes);
+onMounted(refresh);
 </script>
 
 <template>
   <div
-    class="flex flex-col h-full bg-stone-50 dark:bg-stone-900 select-none"
+    class="flex flex-col h-full select-none"
   >
     <!-- Sidebar header -->
-    <div class="header justify-center">
-
+    <div class="flex items-center justify-center">
       <button
-        :aria-selected="actions.create" @click.stop="actions.create= !actions.create"
-        class="btn size-8 rounded"
+        :aria-selected="actions.create"
+        @click.stop="actions.create= !actions.create"
+        class="size-8 rounded-xs flex items-center justify-center text-foreground
+        hover:bg-foreground/10 aria-selected:bg-foreground/10"
         title="Create note"
       >
         <Icon icon="lucide:plus" height="16" />
@@ -64,49 +65,51 @@ onMounted(loadNotes);
             class="w-full p-2 text-sm focus:outline-none"
             required
           />
-          <button class="btn size-8 rounded" title="Create note" type="submit">
+          <button class="flex items-center justify-center size-8 rounded text-foreground hover:bg-foreground/10" title="Create note" type="submit">
             <Icon icon="lucide:plus" height="16" />
           </button>
         </form>
         <div class="text-xs italic opacity-60">
-          Use '/' to create the notes under a directory. (eg. 'directory/note')
+          Use '/' to create directories. (eg. 'directory/myNote')
         </div>
       </div>
     </div>
 
     <!-- Tree -->
-    <div class="flex-1 min-h-0 overflow-y-auto px-2 py-2">
+    <div class="flex-1 min-h-0 overflow-y-auto py-2 px-1 text-foreground">
       <NaojTreeView :items="notesPath">
         <template #directory="props">
           <summary
-            class="flex items-center justify-between cursor-pointer hover:bg-black/10
-                   dark:hover:bg-white/10 py-0.5 pr-1 rounded"
+            class="flex items-center justify-between cursor-pointer py-0.5 pr-1 rounded
+            hover:bg-foreground/10"
             :style="{paddingLeft: 4 + 16 * props.level + 'px'}"
           >
-            <div class="flex items-center justify-start gap-2 group">
-              <Icon icon="lucide:folder" size="16" />
+            <div class="flex items-center justify-start gap-2">
+              <Icon v-if="!props.isOpen" icon="lucide:chevron-right" size="20" />
+              <Icon v-else icon="lucide:chevron-down" size="20" />
               <div>
                 {{ props.label }}
               </div>
             </div>
-            <!-- <Dropdown :distance="6" placement="bottom-start"> -->
-            <!--   <button class="btn size-6 rounded z-50"> -->
-            <!--     <Icon icon="lucide:ellipsis-vertical" /> -->
-            <!--   </button> -->
-            <!--   <template #popper> -->
-            <!--     hola mundo -->
-            <!--   </template> -->
-            <!-- </Dropdown> -->
+            <Dropdown :distance="6" placement="bottom-start">
+              <button class="btn size-6 rounded z-50">
+                <Icon icon="lucide:ellipsis-vertical" />
+              </button>
+              <template #popper>
+                hola mundo
+              </template>
+            </Dropdown>
           </summary>
         </template>
         <template #file="props">
           <div
               @click="push({ name: 'note-view', params: { id: props.id } })"
-            class="flex items-center justify-between cursor-pointer hover:bg-black/10 dark:hover:bg-white/10 py-0.5 px-1 rounded"
+            class="flex items-center justify-between cursor-pointer py-0.5 px-1 rounded
+            hover:bg-foreground/10"
             :style="{paddingLeft: 4 + 16 * props.level + 'px'}"
           >
             <div class="flex items-center justify-start gap-2">
-              <Icon icon="lucide:file-text" />
+              <Icon icon="lucide:square-dashed-text" />
               <div>
                 {{ props.label }}
               </div>
@@ -117,11 +120,11 @@ onMounted(loadNotes);
 
       <!-- Empty state -->
       <div
-        v-if="!notes.length && !isLoading"
-        class="mt-4 flex flex-col items-center gap-2 py-6 text-stone-300 dark:text-stone-700"
+        v-if="!files.length && !isLoading"
+        class="mt-4 flex flex-col items-center gap-2 py-6 text-foreground"
       >
         <Icon icon="material-symbols:edit-note-outline-rounded" height="28" />
-        <p class="text-xs text-stone-400 dark:text-stone-500">No notes yet</p>
+        <p class="text-xs text-foreground">No notes yet</p>
       </div>
     </div>
   </div>

@@ -1,16 +1,17 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { useNotes } from "../composables/useNotes.ts";
 import { useRoute } from "vue-router";
 import { Icon } from "@iconify/vue";
 
+import useNotebook from "../composables/useNotebook";
+
 const route = useRoute();
-const { notes, noteCount } = useNotes();
+const { files } = useNotebook();
 
 const activeNote = computed(() => {
   const id = route.params["id"];
   if (!id) return null;
-  return notes.value.find((n) => n.id === Number(id)) ?? null;
+  return files.value.find((n) => n.id === Number(id)) ?? null;
 });
 
 const wordCount = computed(() => {
@@ -23,7 +24,7 @@ const wordCount = computed(() => {
   <div class="flex items-center gap-3 px-4 h-full text-xs text-stone-400 dark:text-stone-500">
     <span class="flex items-center gap-1">
       <Icon icon="material-symbols:library-books-outline-rounded" height="12" />
-      {{ noteCount }} {{ noteCount === 1 ? "note" : "notes" }}
+      {{ files.length }} {{ files.length === 1 ? "note" : "notes" }}
     </span>
     <template v-if="activeNote">
       <span class="text-stone-300 dark:text-stone-700">·</span>

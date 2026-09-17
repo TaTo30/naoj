@@ -14,9 +14,8 @@
     "lint:eslint": "eslint . --fix --cache"
   },
   "dependencies": {
-    "@naoj/components": "workspace:*",
     "@naoj/core": "workspace:*",
-    "@naoj/notebook": "workspace:*",
+    "@naoj-modules/notebook": "workspace:*",
     "@tailwindcss/vite": "^4.3.3",
     "@vueuse/core": "^12.0.0",
     "sql.js": "^1.12.0",

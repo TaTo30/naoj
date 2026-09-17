@@ -20,7 +20,7 @@ export default defineConfig({
     },
     rollupOptions: {
       // Shared deps are injected at runtime by the host app; do not bundle them
-      external: ['vue', 'vue-router', '@naoj/core', '@naoj/components'],
+      external: ['vue', 'vue-router', '@naoj/core'],
     },
   },
 })

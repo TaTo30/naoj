@@ -17,20 +17,20 @@ export class NotebookModule extends BaseModule {
         path: '/notes',
         name: 'notes',
         components: {
-          default: () => import('./components/NoteEditor.vue'),
-          sidebar: () => import('./components/NoteList.vue'),
-          toolbar: () => import('./components/NoteToolbar.vue'),
-         'status-bar': () => import('./components/NoteStatusBar.vue'),
+          default: () => import('./layout/NotebookMain.vue'),
+          sidebar: () => import('./layout/NotebookSidebar.vue'),
+          toolbar: () => import('./layout/NotebookToolbar.vue'),
+         'status-bar': () => import('./layout/NotebookStatusBar.vue'),
         },
       },
       {
         path: '/notes/:id',
         name: 'note-view',
         components: {
-          default: () => import('./components/NoteEditor.vue'),
-          sidebar: () => import('./components/NoteList.vue'),
-          toolbar: () => import('./components/NoteToolbar.vue'),
-          'status-bar': () => import('./components/NoteStatusBar.vue'),
+          default: () => import('./layout/NotebookMain.vue'),
+          sidebar: () => import('./layout/NotebookSidebar.vue'),
+          toolbar: () => import('./layout/NotebookToolbar.vue'),
+         'status-bar': () => import('./layout/NotebookStatusBar.vue'),
         },
       },
     ]

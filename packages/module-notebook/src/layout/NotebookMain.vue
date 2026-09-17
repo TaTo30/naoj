@@ -1,22 +1,14 @@
 <script setup lang="ts">
-import { ref, computed,  watchEffect, onMounted } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import {  onMounted } from "vue";
 import { Icon } from "@iconify/vue";
-import { NaojEditor } from "@naoj/components";
-import { useNotes } from "../composables/useNotes.ts";
-import type { INote } from "../composables/useNotes.ts";
+import { useDatabase } from "@naoj/core";
 
-const route = useRoute();
-const router = useRouter();
-const { getNoteById, createNote, updateNote } = useNotes();
+import useNotebook from "../composables/useNotebook";
 
-const note = ref<INote | null>(null);
-const contentValue = ref("");
+import  NaojEditor  from "../components/NaojEditor.vue";
 
-const noteId = computed(() => {
-  const id = route.params["id"];
-  return id ? Number(id) : null;
-});
+const { notes, selectedNote, refresh } = useNotebook()
+const db = useDatabase()
 
 const sample = `
 # Welcome to the Markdown Demo
@@ -108,42 +100,44 @@ Pipe characters inside backtick code spans in tables should be preserved:
 
 You can also edit in the editor and see the markdown update.
 
-  `
-
-// Load the content of the selected note each time it changes
-watchEffect(async () => {
-  if (noteId.value !== null){
-    note.value = await getNoteById(noteId.value)
-    if (note.value){
-      contentValue.value = note.value.content;
-    }
-  } else {
-    note.value = null;
-  }
-})
+`
 
 onMounted(async () => {
-  const id = await createNote("/sample")
-
-  updateNote(id, {
+  await db.from("notebook_notes").insert({
+    title: "part1",
     content: sample,
-    title: "Sample Note",
+    tags: "[]",
+    path: "/note",
+    deleted: 0
   })
+  await db.from("notebook_notes").insert({
+    title: "part2",
+    content: sample,
+    tags: "[]",
+    path: "/directory/subdir/part2",
+    deleted: 0
+  })
+
+  await refresh()
 })
+
+
 </script>
 
 <template>
-  <div class="flex flex-col h-full bg-white dark:bg-stone-950  overflow-y-auto">
+  <div class="flex flex-col h-full overflow-y-auto">
+    {{notes}}
+    {{selectedNote}}
     <!-- Empty state -->
-    <div v-if="!note" class="flex flex-col items-center justify-center h-full gap-3 select-none">
+    <div v-if="!selectedNote" class="flex flex-col items-center justify-center h-full gap-3 select-none">
       <div
-        class="p-5 rounded-2xl bg-stone-100 dark:bg-stone-900 text-stone-300 dark:text-stone-600"
+        class="p-5 rounded-2xl"
       >
         <Icon icon="material-symbols:edit-note-rounded" height="40" />
       </div>
       <div class="text-center">
-        <p class="text-sm font-medium text-stone-400 dark:text-stone-500">No note selected</p>
-        <p class="text-xs text-stone-300 dark:text-stone-600 mt-1">
+        <p class="text-sm font-medium">No note selected</p>
+        <p class="text-xs mt-1">
           Pick one from the list or create a new one
         </p>
       </div>

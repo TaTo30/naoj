@@ -1,29 +1,29 @@
 @import "tailwindcss";
 
-@source "../../../modules";
-@source "../../../components";
+@source "../../../module-notebook";
 
-@layer base {
-  button {
-    cursor: pointer;
-  }
+@theme {
+  --color-neutral: oklch(95.4% 0.038 75.164);
+  --color-background: oklch(90.1% 0.076 70.697);
+  --color-foreground: oklch(39.6% 0.141 25.723);
+  --color-primary: oklch(64.6% 0.222 41.116);
+  --color-primary-foreground: oklch(98% 0.016 73.684);
+
+  --color-muted: @apply text-orange-400;
+  --color-muted-foreground: @apply text-orange-600;
 }
 
-@layer components {
-  .btn {
-    @apply flex items-center justify-center text-stone-500 hover:text-orange-500 hover:bg-stone-200 dark:text-stone-400 dark:hover:text-orange-400 dark:hover:bg-stone-700/60 transition-all duration-200
-  }
+.dark {
+    --color-background: @apply bg-orange-900;
+    --color-foreground: @apply text-orange-50;
 
-  .header {
-    @apply h-10 shrink-0 flex items-center gap-2 px-2 bg-white dark:bg-stone-900 border-b border-stone-200 dark:border-stone-800
-  }
+    --color-primary: @apply bg-orange-500;
+    --color-primary-foreground: @apply text-white;
+
+    --color-muted: @apply text-orange-400;
+    --color-muted-foreground: @apply text-orange-600;
 }
 
-*,
-*::before,
-*::after {
-  transition-property: background-color, border-color, color;
-  transition-duration: 150ms;
-  transition-timing-function: ease;
+button {
+  @apply cursor-pointer
 }
-

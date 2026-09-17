@@ -1,19 +1,19 @@
 {
-  "name": "@naoj/components",
-  "version": "0.0.0",
+  "name": "@naoj-modules/notebook",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./style.css": "./src/main.css"
+  },
   "scripts": {
-    "dev": "vite",
-    "build": "run-p type-check \"build-only {@}\" --",
-    "preview": "vite preview",
-    "build-only": "vite build",
-    "type-check": "vue-tsc --build",
-    "lint": "run-s lint:*",
-    "lint:oxlint": "oxlint . --fix",
-    "lint:eslint": "eslint . --fix --cache"
+    "build": "vite build",
+    "type-check": "vue-tsc --noEmit"
   },
   "dependencies": {
+    "@naoj/core": "workspace:*",
     "@tailwindcss/vite": "^4.3.3",
     "@tiptap/core": "^3.31.3",
     "@tiptap/extension-blockquote": "^3.31.3",
@@ -46,28 +46,18 @@
     "highlight.js": "^11.12.0",
     "lowlight": "^3.3.0",
     "tailwindcss": "^4.3.3",
-    "vue": "^3.5.31"
+    "vue": "^3.5.31",
+    "floating-vue": "^5.2.2",
+    "vue-router": "^5.0.0"
   },
   "devDependencies": {
     "@iconify-json/lucide": "^1.2.130",
     "@iconify/vue": "^5.0.1",
-    "@tsconfig/node24": "^24.0.4",
-    "@types/node": "^24.12.0",
-    "@vitejs/plugin-vue": "^6.0.5",
-    "@vue/eslint-config-typescript": "^14.7.0",
+    "@types/node": "^24.13.3",
+    "@vitejs/plugin-vue": "^6.0.8",
     "@vue/tsconfig": "^0.9.1",
-    "eslint": "^10.1.0",
-    "eslint-plugin-oxlint": "~1.57.0",
-    "eslint-plugin-vue": "~10.8.0",
-    "jiti": "^2.6.1",
-    "npm-run-all2": "^8.0.4",
-    "oxlint": "~1.57.0",
     "typescript": "~6.0.0",
-    "vite": "^8.0.3",
-    "vite-plugin-vue-devtools": "^8.1.1",
-    "vue-tsc": "^3.2.6"
-  },
-  "engines": {
-    "node": "^20.19.0 || >=22.12.0"
+    "vite": "^8.1.5",
+    "vue-tsc": "^3.3.7"
   }
 }

@@ -16,20 +16,16 @@ function isActive(primaryRoute: string | undefined): boolean {
 </script>
 
 <template>
-  <div class="flex flex-col items-center gap-0.5 w-full">
+  <div class="flex flex-col items-center gap-0.5">
     <button
       v-for="mod in modules"
       :key="mod.manifest.name"
       :title="mod.manifest.description ?? mod.manifest.name"
-      class="btn size-9 rounded-lg relative group"
-      :class="
-        isActive(mod.manifest.primaryRoute)
-          ? 'text-white bg-orange-500 shadow-md shadow-orange-500/30'
-          : ''
-      "
+      class="text-foreground hover:bg-foreground/25 p-2 size-12 flex justify-center items-center"
+      :class="{'bg-foreground/25': isActive(mod.manifest.primaryRoute)}"
       @click="mod.manifest.primaryRoute && router.push(mod.manifest.primaryRoute)"
     >
-      <Icon :icon="mod.manifest.icon!" :height="18" />
+      <Icon :icon="mod.manifest.icon!" :height="24" />
     </button>
   </div>
 </template>
