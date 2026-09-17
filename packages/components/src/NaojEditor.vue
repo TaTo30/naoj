@@ -35,9 +35,8 @@ import  "./main.css"
 import "highlight.js/styles/github-dark.css"
 
 const lowlight = createLowlight(common)
-console.log(common)
 
-const keymaps = Extension.create({
+const NaojKeymaps = Extension.create({
   name: "naojKeymaps",
   // @ts-ignore
   addKeyboardShortcuts() {
@@ -50,7 +49,7 @@ const keymaps = Extension.create({
           })
           editor.commands.insertContent(" ", { updateSelection: true })
         }
-      }
+      },
     }
   }
 })
@@ -62,7 +61,7 @@ const linkPrompt = useTemplateRef("link-prompt")
 const editor = useEditor({
   content: modelValue.value,
   extensions: [
-    keymaps,
+    NaojKeymaps,
     // Structural extensions
     Document,
     Paragraph,
@@ -82,7 +81,10 @@ const editor = useEditor({
     TableKit,
     CodeBlockLowlight.configure({
       lowlight,
-      defaultLanguage: "plaintext"
+      defaultLanguage: "plaintext",
+      exitOnTripleEnter: true,
+      tabSize: 2,
+      enableTabIndentation: true
     }),
     Image,
     HorizontalRule,
@@ -420,10 +422,12 @@ onBeforeUnmount(() => {
   <div ref="editorContainer" v-if="editor">
     <EditorContent :editor="editor" />
     <FloatingMenu
+      pluginKey="naoj-editor-link-prompt"
       :appendTo="editorContainer!"
       :editor="editor"
-      pluginKey="naoj-editor-link-prompt"
       :shouldShow="() => linkRequested.requested"
+      @keydown.esc="closePromptLink"
+      class="flex flex-col gap-2 items-start bg-stone-800 rounded-lg"
     >
       <div class="flex gap-2 items-center p-2 rounded justify-between">
         <div>
@@ -437,7 +441,9 @@ onBeforeUnmount(() => {
           />
         </div>
         <div class="flex gap-2">
-          <Icon @click="toggleLink" icon="lucide:check" height="20" class="cursor-pointer" />
+          <button @click="toggleLink">
+            <Icon icon="lucide:check" height="20" class="cursor-pointer" />
+          </button>
           <button @click="closePromptLink" >
             <Icon icon="lucide:x" height="20" class="cursor-pointer" />
           </button>
@@ -499,3 +505,5 @@ onBeforeUnmount(() => {
   </div>
 </template>
 
+<style>
+</style>

@@ -151,11 +151,15 @@ onMounted(async () => {
 
     <!-- Editor -->
     <template v-else>
-      <div class="flex justify-center mt-24">
+      <div
+        class="flex shrink-0 justify-center items-center h-10 sticky top-0 dark:bg-stone-950 z-10"
+      >
+        <div class="w-[920px]">
+          commands
+        </div>
+      </div>
+      <div class="flex justify-center my-24">
         <div class="flex flex-col w-[920px] border border-yellow-200 overflow-auto">
-          <div>
-            commands
-          </div>
           <div>
             <NaojEditor v-model="contentValue" />
           </div>
