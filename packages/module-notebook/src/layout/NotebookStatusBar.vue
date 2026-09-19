@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from "vue";
 // @ts-ignore
 import DefaultStatusbar from "../../../app/src/components/DefaultStatusbar.vue"
 
@@ -16,8 +17,10 @@ const { characterCount, activeMarks} = useNotebookEditor();
     <template #info-3>
       {{selectedNote?.path}}
     </template>
-    <template #info>
-      {{characterCount}}
+    <template  #info>
+      <span class="font-extrabold">
+      {{characterCount.characters}} : {{characterCount.words}}
+      </span>
     </template>
   </DefaultStatusbar>
 </template>

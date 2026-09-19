@@ -50,7 +50,7 @@ const sidebarOpen = ref(window.innerWidth >= 768);
 
         <footer class="flex shrink-0 items-center justify-between text-xs">
           <div class="flex items-center">
-            <div class="bg-info text-crust px-2 py-1">
+            <div class="bg-info text-crust pl-2 py-1 pr-4 rounded-r-xl">
               Module Name
             </div>
           </div>
