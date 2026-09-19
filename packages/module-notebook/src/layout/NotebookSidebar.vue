@@ -9,7 +9,7 @@ import  NaojTreeView  from "../components/NaojTreeView.vue";
 
 import  useNotebook from "../composables/useNotebook";
 
-const { files, isLoading, refresh } = useNotebook();
+const { notes, isLoading, refresh, query, selectTab } = useNotebook();
 const { push } = useRouter()
 
 const actions = ref({
@@ -17,7 +17,7 @@ const actions = ref({
 })
 
 const notesPath = computed(() => {
-  return files.value.map(val => {
+  return notes.value.map(val => {
     return {
       id: val.id.toString(),
       path: val.path
@@ -29,7 +29,26 @@ async function handleCreate(evt: Event) {
   const target = evt.target as HTMLFormElement
   const formData = new FormData(target)
 
-  // await createNote(formData.get("input-create-note") as string)
+  const notePath = formData.get("input-create-note") as string
+  let normalizedPath = notePath.trim();
+  if (normalizedPath === "")
+     normalizedPath = "untitled"
+
+  const pathParts = normalizedPath
+    .split("/")
+    .filter(val => val !== "")
+
+  const id = await query()
+    .insert({
+      title: pathParts[pathParts.length - 1],
+      content: "",
+      tags: "[]",
+      path: "/" + pathParts.join("/"),
+      deleted: 0
+    })
+
+  await refresh()
+  selectTab(Number(id))
 
   actions.value.create = false
 }
@@ -120,7 +139,7 @@ onMounted(refresh);
 
       <!-- Empty state -->
       <div
-        v-if="!files.length && !isLoading"
+        v-if="!notes.length && !isLoading"
         class="mt-4 flex flex-col items-center gap-2 py-6 text-foreground"
       >
         <Icon icon="material-symbols:edit-note-outline-rounded" height="28" />

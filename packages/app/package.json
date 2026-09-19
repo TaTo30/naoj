@@ -14,18 +14,18 @@
     "lint:eslint": "eslint . --fix --cache"
   },
   "dependencies": {
-    "@naoj/core": "workspace:*",
     "@naoj-modules/notebook": "workspace:*",
+    "@naoj/core": "workspace:*",
     "@tailwindcss/vite": "^4.3.3",
-    "@vueuse/core": "^12.0.0",
+    "@vueuse/core": "^12.8.2",
     "sql.js": "^1.12.0",
     "tailwindcss": "^4.3.3",
     "vue": "^3.5.40",
     "vue-router": "^5.2.0"
   },
   "devDependencies": {
-    "@iconify/vue": "^5.0.1",
     "@iconify-json/lucide": "^1.2.130",
+    "@iconify/vue": "^5.0.1",
     "@tsconfig/node24": "^24.0.4",
     "@types/node": "^24.13.3",
     "@types/sql.js": "^1.4.9",

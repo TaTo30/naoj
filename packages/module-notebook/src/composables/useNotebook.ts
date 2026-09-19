@@ -1,10 +1,12 @@
-import { useDatabase } from "@naoj/core";
 import { computed, readonly, ref, watchEffect } from "vue"
 import { useRoute } from "vue-router"
 
+import { useDatabase } from "@naoj/core";
+
 interface NoteTab {
   id: number,
-  name: string
+  name: string,
+  fullpath: string
 }
 
 export interface INote {
@@ -18,62 +20,84 @@ export interface INote {
   deleted: number;
 }
 
-const _notes = ref<NoteTab[]>([])
-const _files = ref<INote[]>([])
+const _tabs = ref<NoteTab[]>([])
+const _selectedTab = ref<NoteTab | null>(null)
+const _selectedNote = ref<INote | null>(null)
+const _notes = ref<INote[]>([])
 const _isLoading = ref(false)
 
 export default function () {
   const route = useRoute()
   const core = useDatabase();
 
-  // TODO: Use vueuse computedasync
   const currentNoteId = computed<number | null>(() => {
     return Number(route.params["id"]) || null
   })
 
-  const selectedNote = computed(async () => {
-    if (currentNoteId.value) {
-      const result = await getNoteById(currentNoteId.value)
-      return result
+  async function _getNoteById(id: number): Promise<INote | null> {
+    return core
+      .from<INote>("notebook_notes")
+      .where("id", "=", id)
+      .where("deleted", "=", 0)
+      .first();
+  }
+
+  async function selectTab(noteId: number) {
+    const note = await _getNoteById(noteId)
+    if (note) {
+      const checkTab = _tabs.value.find(tab => tab.id === noteId)
+      if (!checkTab)
+        _tabs.value.push({ id: noteId, name: note.title, fullpath: note.path })
+
+      _selectedTab.value = { id: noteId, name: note.title, fullpath: note.path }
+      _selectedNote.value = note
     }
-    return null
-  })
+    // TODO: Error handling if note is not found
+  }
+
+  async function removeTab(noteId: number) {
+    const index = _tabs.value.findIndex(tab => tab.id === noteId)
+    if (index !== -1) {
+      _tabs.value.splice(index, 1)
+      if (_selectedTab.value?.id === noteId) {
+        if (_tabs.value.length > 0) {
+          await selectTab(_tabs.value[0]!.id)
+        } else {
+          _selectedTab.value = null
+          _selectedNote.value = null
+        }
+      }
+    }
+  }
 
   async function refresh(): Promise<void> {
     try {
-      _files.value = await core
+      _isLoading.value = true;
+      _notes.value = await core
         .from<INote>("notebook_notes")
         .where("deleted", "=", 0)
         .orderBy("title", "ASC")
         .all();
     } finally {
-      // _isLoading.value = false;
+      _isLoading.value = false;
     }
   }
 
-  async function getNoteById(id: number): Promise<INote | null> {
-      return core
-        .from<INote>("notebook_notes")
-        .where("id", "=", id)
-        .where("deleted", "=", 0)
-        .first();
-    }
-
-  watchEffect(() => {
+  watchEffect(async () => {
     if (currentNoteId.value){
-      const findVal = _notes.value.find(val => val.id == currentNoteId.value)
-      if (!findVal) {
-        _notes.value.push({ id: currentNoteId.value, name: "name" })
-      }
+      await selectTab(currentNoteId.value)
     }
   })
 
-
   return {
-    files: readonly(_files),
     notes: readonly(_notes),
-    selectedNote,
+    tabs: readonly(_tabs),
+    selectedTab: readonly(_selectedTab),
+    selectedNote: readonly(_selectedNote),
     isLoading: readonly(_isLoading),
-    refresh
+    selectTab,
+    removeTab,
+    refresh,
+    query: () => core.from<INote>("notebook_notes"),
   }
 }

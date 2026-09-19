@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, useTemplateRef } from "vue";
+import { onBeforeUnmount, onMounted, ref, useTemplateRef, watch } from "vue";
 
 import { useEditor, EditorContent} from "@tiptap/vue-3"
 import { Extension, getMarksBetween } from "@tiptap/core"
 import { FloatingMenu } from "@tiptap/vue-3/menus"
+import { Placeholder, Focus, Selection, CharacterCount } from "@tiptap/extensions"
+import { NodeRange } from "@tiptap/extension-node-range"
 import { Markdown } from "@tiptap/markdown"
 import { Document } from "@tiptap/extension-document";
 import { Text } from "@tiptap/extension-text";
@@ -33,6 +35,7 @@ import NaojEditorCommand from "./NaojEditorCommand.vue"
 
 import  "./main.css"
 import "highlight.js/styles/github-dark.css"
+import useNotebookEditor from "../composables/useNotebookEditor";
 
 const lowlight = createLowlight(common)
 
@@ -58,11 +61,13 @@ const modelValue = defineModel<string>({ required: true, default: "" })
 
 const editorContainer = useTemplateRef("editorContainer")
 const linkPrompt = useTemplateRef("link-prompt")
+const { characterCount, activeMarks }= useNotebookEditor()
+
 const editor = useEditor({
   content: modelValue.value,
   extensions: [
     NaojKeymaps,
-    // Structural extensions
+    // Functional extensions
     Document,
     Paragraph,
     Text,
@@ -75,6 +80,15 @@ const editor = useEditor({
         pedantic: false
       }
     }),
+    NodeRange.configure({
+      key: null
+    }),
+    Placeholder.configure({
+      placeholder: "Type '/' for commands"
+    }),
+    CharacterCount,
+    Focus,
+    Selection,
     // Block content extensions
     Heading,
     ListKit,
@@ -103,7 +117,6 @@ const editor = useEditor({
 })
 
 const commandTriggerSelection = ref<any>({})
-const activeMarks = ref<any>([])
 const linkRequested = ref({
   type: "link",
   requested: false,
@@ -111,10 +124,16 @@ const linkRequested = ref({
 })
 
 function updateMarks() {
-  const { state } = editor.value!
+  const { state, storage } = editor.value!
   const { from, to } = state.selection
+  const { words, characters } = storage.characterCount
+  console.log(editor)
 
   activeMarks.value = getMarksBetween(from, to, state.doc)
+  characterCount.value = {
+    characters: characters(),
+    words: words()
+  }
 }
 
 function command() {
@@ -403,6 +422,10 @@ const blockCommands = [
   },
 ]
 
+watch(modelValue, (newValue) => {
+  editor.value?.commands.setContent(newValue, { contentType: "markdown" })
+})
+
 onMounted(() => {
   editor.value?.on("selectionUpdate", updateMarks)
   editor.value?.on("transaction", updateMarks)
@@ -416,9 +439,6 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div>
-    {{activeMarks}}
-  </div>
   <div ref="editorContainer" v-if="editor">
     <EditorContent :editor="editor" />
     <FloatingMenu
@@ -427,7 +447,7 @@ onBeforeUnmount(() => {
       :editor="editor"
       :shouldShow="() => linkRequested.requested"
       @keydown.esc="closePromptLink"
-      class="flex flex-col gap-2 items-start bg-stone-800 rounded-lg"
+      class="flex flex-col gap-2 items-start bg-base rounded-lg"
     >
       <div class="flex gap-2 items-center p-2 rounded justify-between">
         <div>
@@ -436,7 +456,7 @@ onBeforeUnmount(() => {
             type="text"
             ref="link-prompt"
             placeholder="Enter link URL"
-            class="p-1 rounded w-64"
+            class="p-1 rounded w-64 focus:outline-none"
             @keypress.enter="toggleLink"
           />
         </div>
@@ -457,9 +477,9 @@ onBeforeUnmount(() => {
       :editor="editor"
       pluginKey="naoj-editor-block-commands"
       :shouldShow="shouldshowBlock"
-      class="flex flex-col gap-2 items-start p-2 bg-stone-800 rounded-lg overflow-y-auto"
+      class="flex flex-col gap-2 items-start p-2 bg-base rounded-lg overflow-y-auto"
     >
-      <div class="flex justify-start opacity-50 font-semibold text-sm">
+      <div class="flex justify-start text-info font-semibold text-sm">
         Block Content
       </div>
       <NaojEditorCommand
@@ -471,7 +491,7 @@ onBeforeUnmount(() => {
         :spec="command.spec"
         @click="command.action()"
       />
-      <div class="flex justify-start opacity-50 font-semibold text-sm mt-2">
+      <div class="flex justify-start text-info font-semibold text-sm mt-2">
         Marked Content
       </div>
       <NaojEditorCommand
@@ -490,7 +510,7 @@ onBeforeUnmount(() => {
       :options="{placement: 'bottom-start'}"
       :editor="editor"
       :shouldShow="shouldshowInline"
-      class="flex flex-col gap-2 items-start p-2 bg-stone-800 rounded-lg"
+      class="flex flex-col gap-2 items-start p-2 bg-base rounded-lg"
     >
       <NaojEditorCommand
         v-for="command in markedCommands"
@@ -506,4 +526,5 @@ onBeforeUnmount(() => {
 </template>
 
 <style>
+
 </style>

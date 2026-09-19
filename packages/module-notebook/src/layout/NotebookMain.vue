@@ -1,14 +1,23 @@
 <script setup lang="ts">
-import {  onMounted } from "vue";
+import {  onMounted, ref, watch } from "vue";
 import { Icon } from "@iconify/vue";
 import { useDatabase } from "@naoj/core";
+import { refDebounced } from "@vueuse/core";
 
 import useNotebook from "../composables/useNotebook";
 
 import  NaojEditor  from "../components/NaojEditor.vue";
 
-const { notes, selectedNote, refresh } = useNotebook()
+const { selectedNote, refresh } = useNotebook()
 const db = useDatabase()
+
+const content = ref("")
+const contentDb = refDebounced(content, 1000)
+
+watch(selectedNote, (newVal) => {
+  console.log(newVal)
+  content.value = newVal?.content || ""
+})
 
 const sample = `
 # Welcome to the Markdown Demo
@@ -120,15 +129,10 @@ onMounted(async () => {
 
   await refresh()
 })
-
-
 </script>
 
 <template>
   <div class="flex flex-col h-full overflow-y-auto">
-    {{notes}}
-    {{selectedNote}}
-    <!-- Empty state -->
     <div v-if="!selectedNote" class="flex flex-col items-center justify-center h-full gap-3 select-none">
       <div
         class="p-5 rounded-2xl"
@@ -145,17 +149,10 @@ onMounted(async () => {
 
     <!-- Editor -->
     <template v-else>
-      <div
-        class="flex shrink-0 justify-center items-center h-10 sticky top-0 dark:bg-stone-950 z-10"
-      >
-        <div class="w-[920px]">
-          commands
-        </div>
-      </div>
       <div class="flex justify-center my-24">
-        <div class="flex flex-col w-[920px] border border-yellow-200 overflow-auto">
+        <div class="flex flex-col w-230 overflow-auto">
           <div>
-            <NaojEditor v-model="contentValue" />
+            <NaojEditor v-model="content" />
           </div>
         </div>
       </div>

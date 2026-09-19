@@ -21,11 +21,11 @@ function isActive(primaryRoute: string | undefined): boolean {
       v-for="mod in modules"
       :key="mod.manifest.name"
       :title="mod.manifest.description ?? mod.manifest.name"
-      class="text-foreground hover:bg-foreground/25 p-2 size-12 flex justify-center items-center"
-      :class="{'bg-foreground/25': isActive(mod.manifest.primaryRoute)}"
+      class="hover:text-primary hover:bg-base p-2 size-12 flex justify-center items-center"
+      :class="{'text-primary bg-base': isActive(mod.manifest.primaryRoute)}"
       @click="mod.manifest.primaryRoute && router.push(mod.manifest.primaryRoute)"
     >
-      <Icon :icon="mod.manifest.icon!" :height="24" />
+      <Icon :icon="mod.manifest.icon!" :height="20" />
     </button>
   </div>
 </template>

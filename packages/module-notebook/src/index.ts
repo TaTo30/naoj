@@ -4,7 +4,6 @@ import type { RouteRecordRaw } from 'vue-router'
 import { notesTable } from './schema.ts'
 import rawManifest from '../manifest.json'
 
-import "./main.css"
 import "floating-vue/style.css"
 
 export class NotebookModule extends BaseModule {

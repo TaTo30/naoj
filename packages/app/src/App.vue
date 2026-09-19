@@ -11,34 +11,35 @@ const sidebarOpen = ref(window.innerWidth >= 768);
 </script>
 
 <template>
-  <div class="flex h-dvh bg-neutral p-2 gap-2">
-    <div class="flex h-full border border-foreground/20 rounded">
-      <aside class="flex flex-col items-center shrink-0 z-20 rounded-l rounded-t bg-background">
-          <button
-            :title="sidebarOpen ? 'Hide sidebar' : 'Show sidebar'"
-            class="text-foreground hover:bg-foreground/25 p-2 size-12 flex justify-center items-center"
-            @click="sidebarOpen = !sidebarOpen"
-          >
-            <Icon icon="lucide:panel-left" :height="24" />
-          </button>
+  <div
+    class="flex h-dvh bg-crust text-maintext p-2"
+    :class="sidebarOpen ? 'gap-2' : 'gap-0'"
+  >
+    <div
+      class="flex shrink-0 overflow-hidden h-full rounded"
+      :class="sidebarOpen ? 'w-fit' : 'w-0'"
+    >
+      <aside class="flex flex-col items-center shrink-0 z-20 rounded-l rounded-t bg-mantle">
         <ModuleSelector />
       </aside>
-
-      <aside
-        class="flex flex-col shrink-0 overflow-hidden transition-all duration-200 rounded-r bg-background/50"
-        :class="sidebarOpen ? 'w-64' : 'w-0'"
-      >
+      <aside class="flex flex-col rounded-r w-64 bg-base">
         <router-view v-slot="{ Component }" name="sidebar">
           <component :is="Component ?? DefaultSidebar" />
         </router-view>
       </aside>
     </div>
 
-
-    <div class="flex size-full border border-foreground/20 rounded">
-      <main class="flex-1 flex flex-col overflow-hidden rounded bg-background/30">
-        <header class="header">
-          <div class="flex-1 overflow-hidden">
+    <div class="flex size-full rounded">
+      <main class="flex-1 flex flex-col overflow-hidden rounded bg-mantle">
+        <header class="h-8">
+          <div class="flex overflow-hidden">
+            <button
+              :title="sidebarOpen ? 'Hide sidebar' : 'Show sidebar'"
+              class="hover:text-primary hover:bg-crust p-2 flex justify-center items-center"
+              @click="sidebarOpen = !sidebarOpen"
+            >
+              <Icon icon="lucide:panel-left" :height="16" />
+            </button>
             <router-view name="toolbar" />
           </div>
         </header>
@@ -47,7 +48,12 @@ const sidebarOpen = ref(window.innerWidth >= 768);
           <router-view />
         </div>
 
-        <footer class="h-6 shrink-0">
+        <footer class="flex shrink-0 items-center justify-between text-xs">
+          <div class="flex items-center">
+            <div class="bg-info text-crust px-2 py-1">
+              Module Name
+            </div>
+          </div>
           <router-view v-slot="{ Component }" name="status-bar">
             <component :is="Component ?? DefaultStatusbar" />
           </router-view>

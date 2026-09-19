@@ -3,25 +3,21 @@
 @source "../../../module-notebook";
 
 @theme {
-  --color-neutral: oklch(95.4% 0.038 75.164);
-  --color-background: oklch(90.1% 0.076 70.697);
-  --color-foreground: oklch(39.6% 0.141 25.723);
-  --color-primary: oklch(64.6% 0.222 41.116);
-  --color-primary-foreground: oklch(98% 0.016 73.684);
-
-  --color-muted: @apply text-orange-400;
-  --color-muted-foreground: @apply text-orange-600;
-}
-
-.dark {
-    --color-background: @apply bg-orange-900;
-    --color-foreground: @apply text-orange-50;
-
-    --color-primary: @apply bg-orange-500;
-    --color-primary-foreground: @apply text-white;
-
-    --color-muted: @apply text-orange-400;
-    --color-muted-foreground: @apply text-orange-600;
+  --color-base: rgb(30, 30, 46);
+  --color-mantle: rgb(24, 24, 37);
+  --color-crust: rgb(17, 17, 27);
+  --color-surface: rgb(49, 50, 68);
+  --color-surface-2: rgb(69, 71, 90);
+  --color-overlay: rgb(108, 112, 134);
+  --color-overlay-2: rgb(127, 132, 156);
+  --color-maintext: rgb(205, 214, 244);
+  --color-subtext: rgb(186, 194, 222);
+  --color-primary: rgb(137, 180, 250);
+  --color-secondary: rgb(116, 199, 236);
+  --color-danger: rgb(243, 139, 168);
+  --color-warning: rgb(249, 226, 175);
+  --color-info: rgb(242, 205, 205);
+  --color-success: rgb(148, 226, 213)
 }
 
 button {
