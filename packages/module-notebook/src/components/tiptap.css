@@ -1,6 +1,38 @@
 @import "tailwindcss";
 
+.v-popper--theme-dropdown .v-popper__inner {
+  background-color: var(--color-surface);
+  color: var(--color-maintext);
+  border: 1px solid var(--color-surface-2);
+  border-radius: 6px;
+  padding: 0;
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.4),
+    0 10px 24px -4px rgba(0, 0, 0, 0.5);
+}
+
+/* hide the arrow — these dropdowns are used as context menus */
+.v-popper--theme-dropdown .v-popper__arrow-container {
+  display: none;
+}
+
+.vim-mode-normal {
+  caret-color: transparent;
+
+  .vim-block-cursor {
+    color: var(--color-base);
+    background-color: var(--color-maintext);
+  }
+
+  .vim-block-cursor-eol {
+    color: var(--color-base);
+    background-color: var(--color-maintext);
+  }
+}
+
 .tiptap {
+  /* Classes */
+
   p {
     @apply my-4 first:mt-0 last:mb-0 text-base leading-relaxed;
   }
@@ -167,35 +199,6 @@
     @apply text-xs align-sub leading-none;
   }
 
-  /* Details / Summary (disclosure widget) */
-  details {
-    @apply my-4 rounded-md border border-gray-200 overflow-hidden;
-
-    summary {
-      @apply px-4 py-2 font-semibold cursor-pointer select-none list-none flex items-center gap-2;
-
-      &::before {
-        content: "▶";
-        @apply text-xs transition-transform duration-200 inline-block;
-      }
-    }
-
-    &[open] > summary::before {
-      @apply rotate-90;
-    }
-
-    /* details content wrapper rendered by the extension */
-    [data-type="detailsContent"] {
-      @apply px-4 py-3 border-t border-gray-200;
-    }
-  }
-
-
-
-  /* Table resize handle */
-  .column-resize-handle {
-    @apply absolute top-0 right-0 w-1 h-full bg-blue-400 pointer-events-none;
-  }
 
 }
 

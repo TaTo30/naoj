@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import { Icon } from "@iconify/vue";
 
 import ModuleSelector from "./components/ModuleSelector.vue";
 import DefaultSidebar from "./components/DefaultSidebar.vue";
@@ -35,10 +34,15 @@ const sidebarOpen = ref(window.innerWidth >= 768);
           <div class="flex overflow-hidden">
             <button
               :title="sidebarOpen ? 'Hide sidebar' : 'Show sidebar'"
-              class="hover:text-primary hover:bg-crust p-2 flex justify-center items-center"
+              class="hover:text-primary hover:bg-crust px-2"
               @click="sidebarOpen = !sidebarOpen"
             >
-              <Icon icon="lucide:panel-left" :height="16" />
+              <span v-if="!sidebarOpen" class="text-2xl leading-none" data-glyph="ec02" data-glyph-name="nf-cod-layout_sidebar_left_off">
+                
+              </span>
+              <span v-else class="text-2xl leading-none text" data-glyph="ebf3" data-glyph-name="nf-cod-layout_sidebar_left">
+                
+              </span>
             </button>
             <router-view name="toolbar" />
           </div>

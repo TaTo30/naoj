@@ -20,6 +20,25 @@
   --color-success: rgb(148, 226, 213)
 }
 
+@font-face {
+  font-family: "Nerd";
+  src: url("../../public/FantasqueSansMNerdFontMono-Regular.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Nerd";
+  src: url("../../public/FantasqueSansMNerdFontMono-Italic.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Nerd";
+  src: url("../../public/FantasqueSansMNerdFontMono-Bold.ttf") format("truetype");
+}
+
+body {
+  font-family: "Nerd", monospace;
+}
+
 button {
   @apply cursor-pointer
 }

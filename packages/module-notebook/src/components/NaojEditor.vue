@@ -27,14 +27,17 @@ import { Strike } from "@tiptap/extension-strike"
 import { Highlight } from "@tiptap/extension-highlight"
 import { Code } from "@tiptap/extension-code"
 import { TableKit } from "@tiptap/extension-table"
+import { VimMode } from "vim-prosemirror/tiptap"
 
 import { common, createLowlight } from "lowlight"
 import { Icon } from "@iconify/vue"
 
 import NaojEditorCommand from "./NaojEditorCommand.vue"
 
-import  "./main.css"
+import  "./tiptap.css"
+import "vim-prosemirror/style.css"
 import "highlight.js/styles/github-dark.css"
+
 import useNotebookEditor from "../composables/useNotebookEditor";
 
 const lowlight = createLowlight(common)
@@ -89,6 +92,7 @@ const editor = useEditor({
     CharacterCount,
     Focus,
     Selection,
+    VimMode,
     // Block content extensions
     Heading,
     ListKit,
@@ -429,11 +433,14 @@ watch(modelValue, (newValue) => {
 onMounted(() => {
   editor.value?.on("selectionUpdate", updateMarks)
   editor.value?.on("transaction", updateMarks)
+  editor.value?.on("create", updateMarks)
 })
 
 onBeforeUnmount(() => {
   editor.value?.off("selectionUpdate", updateMarks)
   editor.value?.off("transaction", updateMarks)
+  editor.value?.off("create", updateMarks)
+  editor.value?.off("update")
 })
 
 </script>

@@ -1,4 +1,5 @@
 import { createApp } from "vue";
+import FloatingVue from "floating-vue";
 import App from "./App.vue";
 import router from "./router";
 import initSqlJs from "sql.js";
@@ -48,6 +49,7 @@ async function bootstrap() {
   app.provide(EVENT_BUS_KEY, events);
   app.provide(MODULE_REGISTRY_KEY, registry);
   app.use(router);
+  app.use(FloatingVue);
   app.mount("#app");
 }
 

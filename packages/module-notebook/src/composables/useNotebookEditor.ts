@@ -5,6 +5,6 @@ const characterCount = ref<{words: number, characters: number}>({words: 0, chara
 export default function useNotebookEditor() {
   return {
     activeMarks,
-    characterCount
+    characterCount,
   }
 }

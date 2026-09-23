@@ -1,0 +1,87 @@
+/* Vim mode visual indicators */
+
+/* Hide native caret in non-insert modes */
+.vim-mode-normal,
+.vim-mode-visual,
+.vim-mode-visual-line {
+  caret-color: transparent;
+}
+
+/* Show native caret in insert/replace modes */
+.vim-mode-insert,
+.vim-mode-replace {
+  caret-color: auto;
+}
+
+/* Block cursor (character under cursor in normal/visual modes) */
+.vim-block-cursor {
+  background: rgba(55, 53, 47, 0.8);
+  color: #ffffff;
+  border-radius: 1px;
+}
+
+/* Block cursor at end of line (widget) */
+.vim-block-cursor-eol {
+  background: rgba(55, 53, 47, 0.8);
+  border-radius: 1px;
+}
+
+/* Visual selection highlight */
+.vim-visual-selection {
+  background: rgba(59, 130, 246, 0.3);
+}
+
+/* Empty selected lines need a node-level highlight. */
+.vim-visual-selection-line {
+  background: rgba(59, 130, 246, 0.3);
+}
+
+/* Suppress native selection in visual modes (we use decorations instead) */
+.vim-mode-visual ::selection,
+.vim-mode-visual-line ::selection {
+  background: transparent;
+}
+
+/* Search bar */
+.vim-search-bar {
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+  background: #f8f8f8;
+  border-top: 1px solid #e0e0e0;
+  font-family: 'SF Mono', 'Fira Code', 'Fira Mono', 'Roboto Mono', monospace;
+  font-size: 14px;
+  min-height: 28px;
+}
+
+.vim-search-prefix {
+  color: #666;
+  margin-right: 2px;
+}
+
+.vim-search-input {
+  color: #333;
+  white-space: pre;
+}
+
+.vim-search-cursor {
+  color: #333;
+  animation: vim-cursor-blink 1s step-end infinite;
+}
+
+@keyframes vim-cursor-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* Search match highlights */
+.vim-search-match {
+  background: rgba(255, 200, 0, 0.4);
+  border-radius: 1px;
+}
+
+.vim-search-match-current {
+  background: rgba(255, 140, 0, 0.5);
+  border-radius: 1px;
+}

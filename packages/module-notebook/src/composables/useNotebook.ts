@@ -83,6 +83,102 @@ export default function () {
     }
   }
 
+  async function updateNoteContent(noteId: number, newContent: string): Promise<void> {
+    await core
+      .from<INote>("notebook_notes")
+      .where("id", "=", noteId)
+      .update({ content: newContent });
+
+    await refresh();
+  }
+
+  async function duplicateNote(noteId: number): Promise<void> {
+    const note = await _getNoteById(noteId);
+    if (note) {
+      const path = note.path;
+      const pathParts = path.split("/").filter(val => val !== "");
+      const lastPart = pathParts[pathParts.length - 1];
+      const newTitle = `${lastPart} (copy)`;
+      pathParts[pathParts.length - 1] = newTitle;
+      const newPath = "/" + pathParts.join("/");
+      const newNoteId = await core
+        .from<INote>("notebook_notes")
+        .insert({
+          content: note.content,
+          tags: note.tags,
+          path: newPath,
+          title: newTitle,
+          deleted: 0
+        });
+
+      await refresh();
+      await selectTab(Number(newNoteId));
+    }
+  }
+
+  async function moveNotePath(noteId: number, newPath: string): Promise<void> {
+    if (newPath.trim() === "") {
+      // If the new path is empty, do not update the note's path
+      return;
+    }
+    const normalizedPath =  newPath.trim();
+    const pathParts = normalizedPath
+      .split("/")
+      .filter(val => val !== "");
+
+    await core
+      .from<INote>("notebook_notes")
+      .where("id", "=", noteId)
+      .update({
+        path: "/" + pathParts.join("/"),
+        title: pathParts[pathParts.length - 1]
+      });
+
+    await refresh();
+  }
+
+  async function removePath(path: string): Promise<void> {
+    await core
+      .from<INote>("notebook_notes")
+      .where("path", "like", `${path}%`)
+      .update({ deleted: 1 });
+
+    await refresh();
+
+    // If the removed note was the selected tab, select another tab or clear selection
+    if (_tabs.value.length > 0) {
+      await selectTab(_tabs.value[0]!.id);
+    } else {
+      _selectedTab.value = null;
+      _selectedNote.value = null;
+    }
+  }
+
+  async function createNote(path: string): Promise<Number | null> {
+    let normalizedPath = path.trim();
+    if (normalizedPath === "")
+       normalizedPath = "untitled"
+
+    const pathParts = normalizedPath
+        .split("/")
+        .filter(val => val !== "")
+
+    const id = await core
+      .from<INote>("notebook_notes")
+      .insert({
+        title: pathParts[pathParts.length - 1],
+        content: "",
+        tags: "[]",
+        path: "/" + pathParts.join("/"),
+        deleted: 0
+      })
+
+    await refresh()
+
+    selectTab(Number(id))
+    return Number(id)
+  }
+
   watchEffect(async () => {
     if (currentNoteId.value){
       await selectTab(currentNoteId.value)
@@ -98,6 +194,10 @@ export default function () {
     selectTab,
     removeTab,
     refresh,
-    query: () => core.from<INote>("notebook_notes"),
+    createNote,
+    duplicateNote,
+    updateNoteContent,
+    moveNotePath,
+    removePath
   }
 }

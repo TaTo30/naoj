@@ -8,6 +8,7 @@ const props = defineProps<{
   label?: string
   isRoot?: boolean
   fileFlag?: boolean
+  path?: string
 }>()
 
 const isDirOpen = ref(false)
@@ -43,6 +44,11 @@ const entries = computed(() => {
   ]
 })
 
+const nodePath = computed(() => {
+  if (!props.label) return props.path || ''
+  return (props.path || '') + '/' + props.label
+})
+
 const slotProps = computed(() => {
   return {
     isDir: isDir.value,
@@ -51,6 +57,7 @@ const slotProps = computed(() => {
     id: props.node.__id,
     level: props.node.__level,
     isOpen: isDirOpen.value,
+    path: nodePath.value,
   }
 })
 
@@ -59,7 +66,7 @@ const slotProps = computed(() => {
 <template>
   <div >
     <div v-if="props.isRoot" v-for="[entry, flag] in entries" >
-      <NaojTreeViewNode :node="props.node[entry!]" :label="entry" :file-flag="flag === '1'">
+      <NaojTreeViewNode :node="props.node[entry!]" :label="entry" :file-flag="flag === '1'" :path="''">
         <template #directory="props">
           <slot name="directory" v-bind="props" />
         </template>
@@ -78,7 +85,7 @@ const slotProps = computed(() => {
           </summary>
         </slot>
         <div v-for="[entry, flag] in entries" >
-          <NaojTreeViewNode :node="props.node[entry!]" :label="entry" :file-flag="flag === '1'">
+          <NaojTreeViewNode :node="props.node[entry!]" :label="entry" :file-flag="flag === '1'" :path="nodePath">
             <template #directory="props">
               <slot name="directory" v-bind="props" />
             </template>
