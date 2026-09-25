@@ -1,4 +1,5 @@
 import type { Node as ProseMirrorNode } from 'prosemirror-model'
+import { VimVisualModeState } from './visual-mode/visual-mode'
 
 export type Mode = 'normal' | 'insert' | 'replace' | 'visual' | 'visual-line'
 
@@ -28,6 +29,10 @@ export interface RepeatableAction {
 
 export interface VimState {
   mode: Mode
+  operators: string[]
+
+  visualMode: VimVisualModeState
+
   count: number | null
   operator: 'd' | 'y' | 'c' | null
   findPending: boolean

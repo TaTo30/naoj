@@ -34,48 +34,6 @@ export function createVimPlugin(commands: VimEditorCommands): Plugin<VimState> {
         return value
       },
     },
-
-    view(editorView) {
-      // Create search bar element
-      const searchBar = document.createElement('div')
-      searchBar.className = 'vim-search-bar'
-      searchBar.style.display = 'none'
-
-      const searchPrefix = document.createElement('span')
-      searchPrefix.className = 'vim-search-prefix'
-      searchPrefix.textContent = '/'
-      searchBar.appendChild(searchPrefix)
-
-      const searchInput = document.createElement('span')
-      searchInput.className = 'vim-search-input'
-      searchBar.appendChild(searchInput)
-
-      const searchCursor = document.createElement('span')
-      searchCursor.className = 'vim-search-cursor'
-      searchCursor.textContent = '\u2588'
-      searchBar.appendChild(searchCursor)
-
-      // Insert after the editor
-      editorView.dom.parentNode?.insertBefore(
-        searchBar,
-        editorView.dom.nextSibling,
-      )
-
-      return {
-        update() {
-          if (vimState.searchActive) {
-            searchBar.style.display = 'flex'
-            searchInput.textContent = vimState.searchQuery
-          } else {
-            searchBar.style.display = 'none'
-          }
-        },
-        destroy() {
-          searchBar.remove()
-        },
-      }
-    },
-
     props: {
       handleDOMEvents: {
         mouseup: (view: EditorView) => {

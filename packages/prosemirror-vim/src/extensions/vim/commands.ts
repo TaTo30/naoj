@@ -9,9 +9,12 @@ import { VimState } from './types'
 import { lineEndAt, paragraphBounds } from './utils'
 import {
   ClipboardContent,
+  getLastInternalClipboardContent,
   getLinewiseClipboardLines,
+  readSystemClipboardContent,
   writeSystemClipboardRange,
 } from './clipboard'
+import { EditorView } from 'prosemirror-view'
 
 interface ListItemContext {
   $pos: ResolvedPos
@@ -423,3 +426,56 @@ export function joinLines(
 
   return tr
 }
+
+function sameClipboardText(a: string, b: string): boolean {
+  const normalizeNewlines = (text: string) => text.replace(/\r\n?/g, '\n')
+  return normalizeNewlines(a) === normalizeNewlines(b)
+}
+
+export function pasteFromClipboard(
+  view: EditorView,
+  vimState: VimState,
+  count: number,
+  before: boolean,
+) {
+  const readState = view.state
+  const internalClipboard = getLastInternalClipboardContent()
+  void readSystemClipboardContent(readState).then((systemClipboard) => {
+    let clipboard: ClipboardContent | null = systemClipboard
+    if (clipboard === null) {
+      clipboard = internalClipboard
+      if (clipboard === null) {
+        // TODO: Port
+        return
+      }
+    } else if (
+      internalClipboard?.slice &&
+      sameClipboardText(clipboard.text, internalClipboard.text)
+    ) {
+      // Prefer the rich structure from the most recent Vim copy/delete/change
+      // whenever the plain text matches. The system read may expose only plain
+      // text, or a lossy Markdown-reparsed slice that drops marks (highlight,
+      // color, underline) on headings and list items; the internal slice is the
+      // lossless source of truth for same-session paste. The comparison ignores
+      // line-ending differences because some platforms (e.g. Windows) normalize
+      // `\n` to `\r\n` on a clipboard round-trip.
+      clipboard = {
+        text: clipboard.text,
+        linewise: internalClipboard.linewise,
+        slice: internalClipboard.slice,
+      }
+    }
+
+    if (!clipboard.text && !clipboard.slice) return
+
+    const state = view.state
+    const pos = state.selection.$head.pos
+    const tr = before
+      ? pasteBefore(state, pos, clipboard, count)
+      : pasteAfter(state, pos, clipboard, count)
+    if (tr.docChanged || tr.selectionSet) {
+      view.dispatch(tr)
+    }
+  })
+}
+

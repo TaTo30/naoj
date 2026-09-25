@@ -1,4 +1,4 @@
-import { EditorState } from 'prosemirror-state'
+import { EditorState, TextSelection, Transaction } from 'prosemirror-state'
 
 /**
  * Get the start position of the current paragraph/line (inside the text node).
@@ -255,4 +255,22 @@ export function lineBounds(
   }
 
   return { from: $pos.before(depth), to: $pos.after(depth) }
+}
+
+export function moveCursor(state: EditorState, pos: number): Transaction {
+  const clamped = Math.max(0, Math.min(pos, state.doc.content.size))
+  const tr = state.tr
+  try {
+    tr.setSelection(TextSelection.create(tr.doc, clamped))
+  } catch {
+    // If position is invalid (e.g. inside a node boundary), try to find nearest valid position
+    try {
+      const $pos = state.doc.resolve(clamped)
+      tr.setSelection(TextSelection.create(tr.doc, $pos.pos))
+    } catch {
+      // leave selection unchanged
+    }
+  }
+  tr.scrollIntoView()
+  return tr
 }

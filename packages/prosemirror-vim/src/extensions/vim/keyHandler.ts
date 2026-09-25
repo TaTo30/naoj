@@ -754,6 +754,7 @@ export function handleKeyDown(
   const ctrlKey = event.ctrlKey
 
   // ── SEARCH ACTIVE (typing search query) ──
+  // #region SEARCH MODE can be handled outside
   if (vimState.searchActive) {
     if (key === 'Escape' || (ctrlKey && key === 'c')) {
       vimState.searchActive = false
@@ -795,6 +796,8 @@ export function handleKeyDown(
   }
 
   // ── REPLACE MODE (R) ──
+
+  // replace mode
   if (vimState.mode === 'replace') {
     if (key === 'Escape' || (ctrlKey && key === 'c')) {
       vimState.mode = 'normal'
@@ -823,6 +826,7 @@ export function handleKeyDown(
     return false
   }
 
+
   // ── INSERT MODE ──
   if (vimState.mode === 'insert') {
     if (key === 'Escape' || (ctrlKey && key === 'c')) {
@@ -849,6 +853,7 @@ export function handleKeyDown(
 
   // ── ESC / CTRL-C (normal/visual) ──
   if (key === 'Escape' || (ctrlKey && key === 'c')) {
+    // -- VISUAL MODE --
     if (vimState.mode === 'visual' || vimState.mode === 'visual-line') {
       const restorePos = pos
       vimState.mode = 'normal'
@@ -860,6 +865,7 @@ export function handleKeyDown(
       view.dispatch(moveCursor(state, restorePos))
       return true
     }
+    // -- NORMAL MODE --
     clearPendingState(vimState)
     // Clear search highlights (searchTerm preserved for n/N)
     vimState.searchHighlightsVisible = false
@@ -868,6 +874,7 @@ export function handleKeyDown(
   }
 
   // ── SINGLE REPLACE PENDING (r + char) ──
+  // -- REPLACE MODE --
   if (vimState.replacePendingCount !== null) {
     if (
       key === 'Shift' ||
@@ -971,6 +978,7 @@ export function handleKeyDown(
   }
 
   // ── FIND PENDING (waiting for char after f/F/t/T) ──
+  // -- VISUAL AND NORMAL MODE --
   if (vimState.findPending) {
     // Ignore modifier-only keys — wait for the actual character
     if (
@@ -1091,6 +1099,7 @@ export function handleKeyDown(
   }
 
   // ── G-PREFIX PENDING (gg, ge, g_) ──
+  // -- VISUAL AND NORMAL MODE --
   if (vimState.ggPending) {
     vimState.ggPending = false
     const gCount = getEffectiveCount(vimState)
@@ -1133,6 +1142,7 @@ export function handleKeyDown(
   }
 
   // ── ZZ PENDING ──
+  // -- NORMAL MODE --
   if (vimState.zzPending) {
     if (key === 'z') {
       vimState.zzPending = false
@@ -1145,7 +1155,9 @@ export function handleKeyDown(
     return true
   }
 
+
   // ── SHIFT RIGHT PENDING (>>) ──
+  // -- NORMAL MODE --
   if (vimState.shiftRightPending) {
     if (key === '>') {
       vimState.shiftRightPending = false
@@ -1180,6 +1192,7 @@ export function handleKeyDown(
   }
 
   // ── MARK PENDING (m + char) ──
+  // -- NORMAL MODE -- Check if keep
   if (vimState.markPending) {
     // Ignore modifier-only keys
     if (
@@ -1240,6 +1253,7 @@ export function handleKeyDown(
   }
 
   // ── OPERATOR PENDING or VISUAL: i/a starts text object ──
+  // -- NORMAL AND VISUAL MODE --
   if (
     (vimState.operator ||
       vimState.mode === 'visual' ||
@@ -1604,9 +1618,6 @@ export function handleKeyDown(
   switch (key) {
     // Mode switching
     case 'i': {
-      vimState.mode = 'insert'
-      clearPendingState(vimState)
-      view.dispatch(state.tr) // Trigger view update for mode change
       startInsertTracking(vimState, {
         type: 'insert-command',
         key: 'i',
@@ -1615,10 +1626,6 @@ export function handleKeyDown(
       return true
     }
     case 'I': {
-      vimState.mode = 'insert'
-      const fnbPos = firstNonBlank(state)
-      view.dispatch(moveCursor(state, fnbPos))
-      clearPendingState(vimState)
       startInsertTracking(vimState, {
         type: 'insert-command',
         key: 'I',
@@ -1627,11 +1634,6 @@ export function handleKeyDown(
       return true
     }
     case 'a': {
-      vimState.mode = 'insert'
-      // Move cursor one right (after current char)
-      const newPos = Math.min(pos + 1, lineEndAt(state, pos))
-      view.dispatch(moveCursor(state, newPos))
-      clearPendingState(vimState)
       startInsertTracking(vimState, {
         type: 'insert-command',
         key: 'a',
@@ -1640,10 +1642,6 @@ export function handleKeyDown(
       return true
     }
     case 'A': {
-      vimState.mode = 'insert'
-      const endPos = lineEndAt(state, pos)
-      view.dispatch(moveCursor(state, endPos))
-      clearPendingState(vimState)
       startInsertTracking(vimState, {
         type: 'insert-command',
         key: 'A',
@@ -1652,35 +1650,9 @@ export function handleKeyDown(
       return true
     }
     case 'v': {
-      vimState.mode = 'visual'
-      vimState.visualAnchor = pos
-      vimState.visualHead = pos
-      clearPendingState(vimState)
-      // Set initial selection (single character)
-      const tr = state.tr
-      try {
-        tr.setSelection(
-          TextSelection.create(
-            tr.doc,
-            pos,
-            Math.min(pos + 1, state.doc.content.size),
-          ),
-        )
-      } catch {
-        // leave as-is
-      }
-      view.dispatch(tr)
-      return true
     }
     case 'V': {
-      vimState.mode = 'visual-line'
-      vimState.visualAnchor = pos
-      vimState.visualHead = pos
-      clearPendingState(vimState)
-      const tr = state.tr
-      updateVisualSelection(state, tr, vimState, pos)
-      view.dispatch(tr)
-      return true
+
     }
 
     // Operators
@@ -1699,60 +1671,24 @@ export function handleKeyDown(
 
     // Linewise shortcuts
     case 'D': {
-      // Delete to end of line
-      const endPos = lineEndAt(state, pos)
-      if (pos < endPos) {
-        const tr = executeDelete(state, pos, endPos, vimState, false)
-        view.dispatch(tr)
-      }
-      vimState.lastAction = { type: 'command', key: 'D', count: 1 }
-      clearPendingState(vimState)
-      return true
-    }
+         }
     case 'Y': {
-      // Yank to end of line
-      const endPos = lineEndAt(state, pos)
-      executeYank(state, pos, endPos, vimState, false)
-      clearPendingState(vimState)
-      return true
+
     }
     case 'C': {
-      // Change to end of line
-      const endPos = lineEndAt(state, pos)
-      if (pos < endPos) {
-        const tr = executeChange(state, pos, endPos, vimState, false)
-        view.dispatch(tr)
-      } else {
-        vimState.mode = 'insert'
-      }
-      clearPendingState(vimState)
       startInsertTracking(vimState, {
         type: 'insert-command',
         key: 'C',
         count: 1,
       })
-      return true
     }
 
     // Editing commands
     case 'x': {
-      const tr = deleteChar(state, pos, vimState, count)
-      view.dispatch(tr)
-      vimState.lastAction = { type: 'command', key: 'x', count }
-      clearPendingState(vimState)
-      return true
     }
     case 'p': {
-      pasteFromClipboard(view, vimState, count, false)
-      vimState.lastAction = { type: 'command', key: 'p', count }
-      clearPendingState(vimState)
-      return true
     }
     case 'P': {
-      pasteFromClipboard(view, vimState, count, true)
-      vimState.lastAction = { type: 'command', key: 'P', count }
-      clearPendingState(vimState)
-      return true
     }
     case 'r': {
       const replaceCount = count
@@ -1767,26 +1703,18 @@ export function handleKeyDown(
       return true
     }
     case 'o': {
-      const tr = openLineBelow(state, pos, vimState)
-      view.dispatch(tr)
-      clearPendingState(vimState)
       startInsertTracking(vimState, {
         type: 'insert-command',
         key: 'o',
         count: 1,
       })
-      return true
     }
     case 'O': {
-      const tr = openLineAbove(state, pos, vimState)
-      view.dispatch(tr)
-      clearPendingState(vimState)
       startInsertTracking(vimState, {
         type: 'insert-command',
         key: 'O',
         count: 1,
       })
-      return true
     }
     case 'J': {
       const tr = joinLines(state, pos, count)
@@ -1796,79 +1724,8 @@ export function handleKeyDown(
       return true
     }
 
-    // Undo
-    case 'u': {
-      for (let i = 0; i < count; i++) {
-        commands.undo()
-      }
-      clearPendingState(vimState)
-      return true
-    }
 
-    // Motions
-    case 'j':
-    case 'k': {
-      if (vimState.goalColumn === null) {
-        try {
-          const $pos = state.doc.resolve(pos)
-          vimState.goalColumn = pos - $pos.start($pos.depth)
-        } catch {
-          vimState.goalColumn = 0
-        }
-      }
-      const savedGoal = vimState.goalColumn
-      const targetPos = resolveMotionKey(
-        state,
-        pos,
-        key,
-        count,
-        false,
-        savedGoal,
-      )
-      if (targetPos !== null) {
-        view.dispatch(moveCursor(state, targetPos))
-      }
-      clearPendingState(vimState)
-      vimState.goalColumn = savedGoal
-      return true
-    }
-    case 'h':
-    case 'l':
-    case '^':
-    case '$':
-    case 'w':
-    case 'e':
-    case 'b':
-    case 'W':
-    case 'E':
-    case 'B':
-    case '{':
-    case '}':
-    case '%':
-    case '|':
-    case '+':
-    case '-':
-    case '_': {
-      const targetPos = resolveMotionKey(state, pos, key, count, false)
-      if (targetPos !== null) {
-        view.dispatch(moveCursor(state, targetPos))
-      }
-      clearPendingState(vimState)
-      return true
-    }
-    case '0': {
-      // 0 is motion to line start (only when not part of a count)
-      const targetPos = motionLineStart(state, pos)
-      view.dispatch(moveCursor(state, targetPos))
-      clearPendingState(vimState)
-      return true
-    }
-    case 'G': {
-      const targetPos = motionDocEnd(state)
-      view.dispatch(moveCursor(state, targetPos))
-      clearPendingState(vimState)
-      return true
-    }
+
     case 'g': {
       vimState.ggPending = true
       return true
