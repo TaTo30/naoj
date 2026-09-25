@@ -1,12 +1,51 @@
 import { EditorView } from "prosemirror-view";
 
-import type { VimEditorCommands } from "../types";
-import { firstNonBlank, lineEndAt, moveCursor } from "../utils";
-import { EditorState, TextSelection } from "prosemirror-state";
+import type { VimEditorCommands, VimState } from "../types";
+import { firstNonBlank, lineEndAt, lineStartAt, moveCursor } from "../utils";
+import { EditorState, TextSelection, Transaction } from "prosemirror-state";
 import { updateVisualSelection } from "../visual-mode/visual-mode";
-import { executeChange, executeDelete, executeYank } from "../operators";
-import { deleteChar, openLineAbove, openLineBelow, pasteFromClipboard } from "../commands";
-import { motionDocEnd, motionDown, motionFirstNonBlank, motionFirstNonBlankAt, motionFullPageDown, motionFullPageUp, motionHalfPageDown, motionHalfPageUp, motionLeft, motionLineEnd, motionLineStart, motionMatchingBracket, motionParagraphBackward, motionParagraphForward, motionRight, motionUp, motionWORDBackward, motionWordBackward, motionWORDEnd, motionWordEnd, motionWORDForward, motionWordForward } from "../motions";
+import { changeLines, deleteLines, executeChange, executeDelete, executeYank, resolveTextObject } from "../operators";
+import { deleteChar, joinLines, openLineAbove, openLineBelow, pasteFromClipboard, replaceChars } from "../commands";
+import { motionDocEnd, motionDocStart, motionDown, motionFindCharBackward, motionFindCharForward, motionFirstNonBlank, motionFirstNonBlankAt, motionFullPageDown, motionFullPageUp, motionHalfPageDown, motionHalfPageUp, motionLeft, motionLineEnd, motionLineStart, motionMatchingBracket, motionParagraphBackward, motionParagraphForward, motionRight, motionTillCharBackward, motionTillCharForward, motionUp, motionWORDBackward, motionWordBackward, motionWORDEnd, motionWordEnd, motionWORDForward, motionWordForward } from "../motions";
+
+/**
+ * Handle operator + motion/text-object combination.
+ */
+function handleOperatorMotion(
+  state: EditorState,
+  vimState: VimState,
+  from: number,
+  to: number,
+  linewise: boolean = false,
+): Transaction | null {
+  const op = vimState.operator
+  if (!op) return null
+
+  // Ensure from < to
+  const [rangeFrom, rangeTo] = from <= to ? [from, to] : [to, from]
+
+  let tr: Transaction
+
+  switch (op) {
+    case 'd':
+      tr = executeDelete(state, rangeFrom, rangeTo, vimState, linewise)
+      break
+    case 'y':
+      executeYank(state, rangeFrom, rangeTo, vimState, linewise)
+      tr = state.tr // No document change
+      break
+    case 'c':
+      tr = executeChange(state, rangeFrom, rangeTo, vimState, linewise)
+      break
+    default:
+      return null
+  }
+
+
+  vimState.operators = []
+  tr.scrollIntoView()
+  return tr
+}
 
 /**
  * Apply a motion N times, returning the final position.
@@ -120,20 +159,310 @@ function resolveMotionKey(
   }
 }
 
-export function normalMode(view: EditorView, event: KeyboardEvent, state: state, commands: VimEditorCommands): boolean {
+function replayLastAction(
+  view: EditorView,
+  vimState: VimState,
+  commands: VimEditorCommands,
+) {
+  const action = vimState.lastAction
+  if (!action) return
+
+  const state = view.state
+  const pos = state.selection.$head.pos
+  const count = vimState.count ?? action.count
+
+  switch (action.type) {
+    case 'command': {
+      switch (action.key) {
+        case 'x': {
+          const tr = deleteChar(state, pos, vimState, count)
+          view.dispatch(tr)
+          break
+        }
+        case 'p': {
+          pasteFromClipboard(view, vimState, count, false)
+          break
+        }
+        case 'P': {
+          pasteFromClipboard(view, vimState, count, true)
+          break
+        }
+        case 'r': {
+          if (action.replaceChar) {
+            const tr = replaceChars(state, pos, action.replaceChar, count)
+            view.dispatch(tr)
+          }
+          break
+        }
+        case 'J': {
+          const tr = joinLines(state, pos, count)
+          view.dispatch(tr)
+          break
+        }
+        case 'D': {
+          const endPos = lineEndAt(state, pos)
+          if (pos < endPos) {
+            const tr = executeDelete(state, pos, endPos, vimState, false)
+            view.dispatch(tr)
+          }
+          break
+        }
+        case '>>': {
+          for (let i = 0; i < count; i++) {
+            commands.indent?.()
+          }
+          break
+        }
+        case '<<': {
+          for (let i = 0; i < count; i++) {
+            commands.outdent?.()
+          }
+          break
+        }
+      }
+      break
+    }
+    case 'operator-linewise': {
+      switch (action.operator) {
+        case 'd': {
+          const tr = deleteLines(state, pos, count, vimState)
+          tr.scrollIntoView()
+          view.dispatch(tr)
+          break
+        }
+        case 'c': {
+          const tr = changeLines(state, pos, count, vimState)
+          tr.scrollIntoView()
+          view.dispatch(tr)
+          if (action.insertedText) {
+            const ns = view.state
+            const itr = ns.tr.insertText(
+              action.insertedText,
+              ns.selection.$head.pos,
+            )
+            view.dispatch(itr)
+            vimState.mode = 'normal'
+            const fs = view.state
+            const fp = fs.selection.$head.pos
+            const ls = lineStartAt(fs, fp)
+            view.dispatch(moveCursor(fs, fp > ls ? fp - 1 : fp))
+          }
+          break
+        }
+      }
+      break
+    }
+    case 'operator-motion': {
+      if (!action.operator || !action.motion) break
+
+      let targetPos: number | null = null
+
+      if (action.findMotion && action.findChar) {
+        let current = pos
+        for (let i = 0; i < count; i++) {
+          let result: number | null = null
+          switch (action.findMotion) {
+            case 'f':
+              result = motionFindCharForward(state, current, action.findChar)
+              break
+            case 'F':
+              result = motionFindCharBackward(state, current, action.findChar)
+              break
+            case 't':
+              result = motionTillCharForward(state, current, action.findChar)
+              break
+            case 'T':
+              result = motionTillCharBackward(state, current, action.findChar)
+              break
+          }
+          if (result === null) break
+          current = result
+        }
+        targetPos = current !== pos ? current : null
+      } else if (action.motion === 'gg') {
+        targetPos = motionDocStart(state)
+      } else {
+        targetPos = resolveMotionKey(state, pos, action.motion, count, false)
+      }
+
+      if (targetPos !== null) {
+        let from = pos
+        let to = targetPos
+        if (action.findMotion === 'f' || action.findMotion === 't') {
+          to = targetPos + 1
+        } else if (action.findMotion === 'F' || action.findMotion === 'T') {
+          from = targetPos
+          to = pos
+        } else if (action.motion === 'e' || action.motion === 'E') {
+          to = targetPos + 1
+        }
+
+        vimState.operator = action.operator!
+        const tr = handleOperatorMotion(state, vimState, from, to, false)
+        if (tr) {
+          tr.scrollIntoView()
+          view.dispatch(tr)
+        }
+
+        if (action.operator === 'c' && action.insertedText) {
+          const ns = view.state
+          const itr = ns.tr.insertText(
+            action.insertedText,
+            ns.selection.$head.pos,
+          )
+          view.dispatch(itr)
+          vimState.mode = 'normal'
+          const fs = view.state
+          const fp = fs.selection.$head.pos
+          const ls = lineStartAt(fs, fp)
+          view.dispatch(moveCursor(fs, fp > ls ? fp - 1 : fp))
+        }
+      }
+      break
+    }
+    case 'operator-textobject': {
+      if (!action.operator || !action.textObject) break
+
+      const result = resolveTextObject(
+        state,
+        pos,
+        action.textObject.type,
+        action.textObject.object,
+      )
+      if (result) {
+        vimState.operator = action.operator!
+        const tr = handleOperatorMotion(
+          state,
+          vimState,
+          result.from,
+          result.to,
+          false,
+        )
+        if (tr) {
+          tr.scrollIntoView()
+          view.dispatch(tr)
+        }
+
+        if (action.operator === 'c' && action.insertedText) {
+          const ns = view.state
+          const itr = ns.tr.insertText(
+            action.insertedText,
+            ns.selection.$head.pos,
+          )
+          view.dispatch(itr)
+          vimState.mode = 'normal'
+          const fs = view.state
+          const fp = fs.selection.$head.pos
+          const ls = lineStartAt(fs, fp)
+          view.dispatch(moveCursor(fs, fp > ls ? fp - 1 : fp))
+        }
+      }
+      break
+    }
+    case 'insert-command': {
+      switch (action.key) {
+        case 'o': {
+          const tr = openLineBelow(state, pos, vimState)
+          view.dispatch(tr)
+          break
+        }
+        case 'O': {
+          const tr = openLineAbove(state, pos, vimState)
+          view.dispatch(tr)
+          break
+        }
+        case 'i': {
+          vimState.mode = 'insert'
+          view.dispatch(state.tr)
+          break
+        }
+        case 'a': {
+          vimState.mode = 'insert'
+          const newPos = Math.min(pos + 1, lineEndAt(state, pos))
+          view.dispatch(moveCursor(state, newPos))
+          break
+        }
+        case 'A': {
+          vimState.mode = 'insert'
+          const endPos = lineEndAt(state, pos)
+          view.dispatch(moveCursor(state, endPos))
+          break
+        }
+        case 'I': {
+          vimState.mode = 'insert'
+          const fnbPos = firstNonBlank(state)
+          view.dispatch(moveCursor(state, fnbPos))
+          break
+        }
+        case 'C': {
+          const endPos = lineEndAt(state, pos)
+          if (pos < endPos) {
+            const tr = executeChange(state, pos, endPos, vimState, false)
+            view.dispatch(tr)
+          } else {
+            vimState.mode = 'insert'
+          }
+          break
+        }
+      }
+      // Insert the recorded text and return to normal mode
+      if (action.insertedText) {
+        const ns = view.state
+        const itr = ns.tr.insertText(
+          action.insertedText,
+          ns.selection.$head.pos,
+        )
+        view.dispatch(itr)
+        vimState.mode = 'normal'
+        const fs = view.state
+        const fp = fs.selection.$head.pos
+        const ls = lineStartAt(fs, fp)
+        view.dispatch(moveCursor(fs, fp > ls ? fp - 1 : fp))
+      }
+      break
+    }
+  }
+}
+
+
+
+export function normalMode(view: EditorView, event: KeyboardEvent, state: VimState, commands: VimEditorCommands): boolean {
+  if (event.key === 'Escape' || (event.ctrlKey && event.key === 'c')) {
+    state.operators = []
+    view.dispatch(view.state.tr)
+    return true
+  }
+
   switch (event.key) {
     // Insert mode. TODO: track insert mode for repeatable actions.
     case "i": {
       state.mode = "insert";
       state.operators = [];
+      state.insertMode =  {
+        action: {
+          type: 'insert-command',
+          key: 'i',
+          count: 1,
+        },
+        isTrackingInsert: true,
+        insertTextBuffer: '',
+      }
 
       view.dispatch(view.state.tr)
-
       return true;
     }
     case "I": {
       state.mode = "insert";
       state.operators = [];
+      state.insertMode =  {
+        action: {
+          type: 'insert-command',
+          key: 'I',
+          count: 1,
+        },
+        isTrackingInsert: true,
+        insertTextBuffer: '',
+      }
 
       const fnbPos = firstNonBlank(view.state)
       view.dispatch(moveCursor(view.state, fnbPos))
@@ -143,6 +472,15 @@ export function normalMode(view: EditorView, event: KeyboardEvent, state: state,
     case "a": {
       state.mode = "insert";
       state.operators = [];
+      state.insertMode =  {
+        action: {
+          type: 'insert-command',
+          key: 'a',
+          count: 1,
+        },
+        isTrackingInsert: true,
+        insertTextBuffer: '',
+      }
 
       const pos = view.state.selection.$head.pos
       const newPos = Math.min(pos + 1, lineEndAt(view.state, pos))
@@ -153,6 +491,15 @@ export function normalMode(view: EditorView, event: KeyboardEvent, state: state,
     case 'A': {
       state.mode = 'insert'
       state.operators = []
+      state.insertMode =  {
+        action: {
+          type: 'insert-command',
+          key: 'A',
+          count: 1,
+        },
+        isTrackingInsert: true,
+        insertTextBuffer: '',
+      }
 
       const pos = view.state.selection.$head.pos
       const endPos = lineEndAt(view.state, pos)
@@ -163,6 +510,15 @@ export function normalMode(view: EditorView, event: KeyboardEvent, state: state,
     case 'o': {
       state.mode = 'insert'
       state.operators = []
+      state.insertMode =  {
+        action: {
+          type: 'insert-command',
+          key: 'o',
+          count: 1,
+        },
+        isTrackingInsert: true,
+        insertTextBuffer: '',
+      }
 
       const pos = view.state.selection.$head.pos
       const tr = openLineBelow(view.state, pos, state)
@@ -173,6 +529,15 @@ export function normalMode(view: EditorView, event: KeyboardEvent, state: state,
     case 'O': {
       state.mode = 'insert'
       state.operators = []
+      state.insertMode =  {
+        action: {
+          type: 'insert-command',
+          key: 'O',
+          count: 1,
+        },
+        isTrackingInsert: true,
+        insertTextBuffer: '',
+      }
 
       const pos = view.state.selection.$head.pos
       const tr = openLineAbove(view.state, pos, state)
@@ -260,6 +625,15 @@ export function normalMode(view: EditorView, event: KeyboardEvent, state: state,
 
       state.mode = "insert"
       state.operators = []
+      state.insertMode =  {
+        action: {
+          type: 'insert-command',
+          key: 'C',
+          count: 1,
+        },
+        isTrackingInsert: true,
+        insertTextBuffer: '',
+      }
       return true
     }
 
@@ -304,7 +678,7 @@ export function normalMode(view: EditorView, event: KeyboardEvent, state: state,
 
       if (state.goalColumn === null) {
         try {
-          const $pos = state.doc.resolve(pos)
+          const $pos = view.state.doc.resolve(pos)
           state.goalColumn = pos - $pos.start($pos.depth)
         } catch {
           state.goalColumn = 0
@@ -312,7 +686,7 @@ export function normalMode(view: EditorView, event: KeyboardEvent, state: state,
       }
       const savedGoal = state.goalColumn
       const targetPos = resolveMotionKey(
-        state,
+        view.state,
         pos,
         event.key,
         count,
@@ -320,9 +694,10 @@ export function normalMode(view: EditorView, event: KeyboardEvent, state: state,
         savedGoal,
       )
       if (targetPos !== null) {
-        view.dispatch(moveCursor(state, targetPos))
+        view.dispatch(moveCursor(view.state, targetPos))
       }
-      clearPendingState(state)
+
+      state.operators = []
       state.goalColumn = savedGoal
       return true
     }
@@ -343,29 +718,60 @@ export function normalMode(view: EditorView, event: KeyboardEvent, state: state,
     case '+':
     case '-':
     case '_': {
-      const targetPos = resolveMotionKey(state, pos, key, count, false)
+      const count = state.count ?? 1
+      const pos = view.state.selection.$head.pos
+      const targetPos = resolveMotionKey(view.state, pos, event.key, count, false)
+
       if (targetPos !== null) {
-        view.dispatch(moveCursor(state, targetPos))
+        view.dispatch(moveCursor(view.state, targetPos))
       }
-      clearPendingState(state)
+
+      state.operators = []
       return true
     }
     case '0': {
       // 0 is motion to line start (only when not part of a count)
-      const targetPos = motionLineStart(state, pos)
-      view.dispatch(moveCursor(state, targetPos))
-      clearPendingState(state)
+      const pos = view.state.selection.$head.pos
+      const targetPos = motionLineStart(view.state, pos)
+      view.dispatch(moveCursor(view.state, targetPos))
+
+      state.operators = []
       return true
     }
     case 'G': {
-      const targetPos = motionDocEnd(state)
-      view.dispatch(moveCursor(state, targetPos))
-      clearPendingState(state)
+      const targetPos = motionDocEnd(view.state)
+      view.dispatch(moveCursor(view.state, targetPos))
+
+      state.operators = []
+      return true
+    }
+
+
+    // Operators
+    case "g": // gg - move to top of document
+    case "d": // delete operators
+    case "y": // yank operators
+    case "c": // change operators
+    case "r": // replace a single character
+    case ">": // >> - indent operator
+    case "<": // << - outdent operator
+    {
+      state.operators = [event.key]
+      return true
+    }
+
+
+
+    // Dot repeat
+    case '.': {
+      if (state.lastAction) {
+        replayLastAction(view, state, commands)
+      }
+
+      state.operators = []
       return true
     }
   }
-
-
 
   return true;
 }

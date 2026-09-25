@@ -47,28 +47,15 @@ import {
   changeLines,
 } from './operators'
 import {
-  deleteChar,
-  pasteAfter,
-  pasteBefore,
   replaceChars,
-  openLineBelow,
-  openLineAbove,
-  joinLines,
 } from './commands'
 import { updateVisualSelection, getVisualRange } from './visual'
 import {
   lineStartAt,
   lineEndAt,
-  firstNonBlank,
   findAllMatches,
-  findNextMatch,
-  findPrevMatch,
-  wordUnderCursor,
 } from './utils'
 import {
-  ClipboardContent,
-  getLastInternalClipboardContent,
-  readSystemClipboardContent,
   setClipboardSerializerFromView,
 } from './clipboard'
 
@@ -99,63 +86,63 @@ function getReplaceInputChar(event: KeyboardEvent): string | null {
   return null
 }
 
-function updateStatus(view: EditorView, vimState: VimState, status: string) {
-  vimState.statusMessage = status
-  view.dispatch(view.state.tr)
-}
-
-function sameClipboardText(a: string, b: string): boolean {
-  const normalizeNewlines = (text: string) => text.replace(/\r\n?/g, '\n')
-  return normalizeNewlines(a) === normalizeNewlines(b)
-}
-
-function pasteFromClipboard(
-  view: EditorView,
-  vimState: VimState,
-  count: number,
-  before: boolean,
-) {
-  const readState = view.state
-  const internalClipboard = getLastInternalClipboardContent()
-  void readSystemClipboardContent(readState).then((systemClipboard) => {
-    let clipboard: ClipboardContent | null = systemClipboard
-    if (clipboard === null) {
-      clipboard = internalClipboard
-      if (clipboard === null) {
-        updateStatus(view, vimState, 'clipboard unavailable')
-        return
-      }
-    } else if (
-      internalClipboard?.slice &&
-      sameClipboardText(clipboard.text, internalClipboard.text)
-    ) {
-      // Prefer the rich structure from the most recent Vim copy/delete/change
-      // whenever the plain text matches. The system read may expose only plain
-      // text, or a lossy Markdown-reparsed slice that drops marks (highlight,
-      // color, underline) on headings and list items; the internal slice is the
-      // lossless source of truth for same-session paste. The comparison ignores
-      // line-ending differences because some platforms (e.g. Windows) normalize
-      // `\n` to `\r\n` on a clipboard round-trip.
-      clipboard = {
-        text: clipboard.text,
-        linewise: internalClipboard.linewise,
-        slice: internalClipboard.slice,
-      }
-    }
-
-    if (!clipboard.text && !clipboard.slice) return
-
-    const state = view.state
-    const pos = state.selection.$head.pos
-    const tr = before
-      ? pasteBefore(state, pos, clipboard, count)
-      : pasteAfter(state, pos, clipboard, count)
-    if (tr.docChanged || tr.selectionSet) {
-      view.dispatch(tr)
-    }
-  })
-}
-
+// function updateStatus(view: EditorView, vimState: VimState, status: string) {
+//   vimState.statusMessage = status
+//   view.dispatch(view.state.tr)
+// }
+//
+// function sameClipboardText(a: string, b: string): boolean {
+//   const normalizeNewlines = (text: string) => text.replace(/\r\n?/g, '\n')
+//   return normalizeNewlines(a) === normalizeNewlines(b)
+// }
+//
+// function pasteFromClipboard(
+//   view: EditorView,
+//   vimState: VimState,
+//   count: number,
+//   before: boolean,
+// ) {
+//   const readState = view.state
+//   const internalClipboard = getLastInternalClipboardContent()
+//   void readSystemClipboardContent(readState).then((systemClipboard) => {
+//     let clipboard: ClipboardContent | null = systemClipboard
+//     if (clipboard === null) {
+//       clipboard = internalClipboard
+//       if (clipboard === null) {
+//         updateStatus(view, vimState, 'clipboard unavailable')
+//         return
+//       }
+//     } else if (
+//       internalClipboard?.slice &&
+//       sameClipboardText(clipboard.text, internalClipboard.text)
+//     ) {
+//       // Prefer the rich structure from the most recent Vim copy/delete/change
+//       // whenever the plain text matches. The system read may expose only plain
+//       // text, or a lossy Markdown-reparsed slice that drops marks (highlight,
+//       // color, underline) on headings and list items; the internal slice is the
+//       // lossless source of truth for same-session paste. The comparison ignores
+//       // line-ending differences because some platforms (e.g. Windows) normalize
+//       // `\n` to `\r\n` on a clipboard round-trip.
+//       clipboard = {
+//         text: clipboard.text,
+//         linewise: internalClipboard.linewise,
+//         slice: internalClipboard.slice,
+//       }
+//     }
+//
+//     if (!clipboard.text && !clipboard.slice) return
+//
+//     const state = view.state
+//     const pos = state.selection.$head.pos
+//     const tr = before
+//       ? pasteBefore(state, pos, clipboard, count)
+//       : pasteAfter(state, pos, clipboard, count)
+//     if (tr.docChanged || tr.selectionSet) {
+//       view.dispatch(tr)
+//     }
+//   })
+// }
+//
 /**
  * Apply a motion N times, returning the final position.
  */
@@ -465,270 +452,270 @@ function startInsertTracking(vimState: VimState, action: RepeatableAction) {
   vimState.insertTextBuffer = ''
 }
 
-function replayLastAction(
-  view: EditorView,
-  vimState: VimState,
-  commands: VimEditorCommands,
-) {
-  const action = vimState.lastAction
-  if (!action) return
-
-  const state = view.state
-  const pos = state.selection.$head.pos
-  const count = vimState.count ?? action.count
-
-  switch (action.type) {
-    case 'command': {
-      switch (action.key) {
-        case 'x': {
-          const tr = deleteChar(state, pos, vimState, count)
-          view.dispatch(tr)
-          break
-        }
-        case 'p': {
-          pasteFromClipboard(view, vimState, count, false)
-          break
-        }
-        case 'P': {
-          pasteFromClipboard(view, vimState, count, true)
-          break
-        }
-        case 'r': {
-          if (action.replaceChar) {
-            const tr = replaceChars(state, pos, action.replaceChar, count)
-            view.dispatch(tr)
-          }
-          break
-        }
-        case 'J': {
-          const tr = joinLines(state, pos, count)
-          view.dispatch(tr)
-          break
-        }
-        case 'D': {
-          const endPos = lineEndAt(state, pos)
-          if (pos < endPos) {
-            const tr = executeDelete(state, pos, endPos, vimState, false)
-            view.dispatch(tr)
-          }
-          break
-        }
-        case '>>': {
-          for (let i = 0; i < count; i++) {
-            commands.indent?.()
-          }
-          break
-        }
-        case '<<': {
-          for (let i = 0; i < count; i++) {
-            commands.outdent?.()
-          }
-          break
-        }
-      }
-      break
-    }
-    case 'operator-linewise': {
-      switch (action.operator) {
-        case 'd': {
-          const tr = deleteLines(state, pos, count, vimState)
-          tr.scrollIntoView()
-          view.dispatch(tr)
-          break
-        }
-        case 'c': {
-          const tr = changeLines(state, pos, count, vimState)
-          tr.scrollIntoView()
-          view.dispatch(tr)
-          if (action.insertedText) {
-            const ns = view.state
-            const itr = ns.tr.insertText(
-              action.insertedText,
-              ns.selection.$head.pos,
-            )
-            view.dispatch(itr)
-            vimState.mode = 'normal'
-            const fs = view.state
-            const fp = fs.selection.$head.pos
-            const ls = lineStartAt(fs, fp)
-            view.dispatch(moveCursor(fs, fp > ls ? fp - 1 : fp))
-          }
-          break
-        }
-      }
-      break
-    }
-    case 'operator-motion': {
-      if (!action.operator || !action.motion) break
-
-      let targetPos: number | null = null
-
-      if (action.findMotion && action.findChar) {
-        let current = pos
-        for (let i = 0; i < count; i++) {
-          let result: number | null = null
-          switch (action.findMotion) {
-            case 'f':
-              result = motionFindCharForward(state, current, action.findChar)
-              break
-            case 'F':
-              result = motionFindCharBackward(state, current, action.findChar)
-              break
-            case 't':
-              result = motionTillCharForward(state, current, action.findChar)
-              break
-            case 'T':
-              result = motionTillCharBackward(state, current, action.findChar)
-              break
-          }
-          if (result === null) break
-          current = result
-        }
-        targetPos = current !== pos ? current : null
-      } else if (action.motion === 'gg') {
-        targetPos = motionDocStart(state)
-      } else {
-        targetPos = resolveMotionKey(state, pos, action.motion, count, false)
-      }
-
-      if (targetPos !== null) {
-        let from = pos
-        let to = targetPos
-        if (action.findMotion === 'f' || action.findMotion === 't') {
-          to = targetPos + 1
-        } else if (action.findMotion === 'F' || action.findMotion === 'T') {
-          from = targetPos
-          to = pos
-        } else if (action.motion === 'e' || action.motion === 'E') {
-          to = targetPos + 1
-        }
-
-        vimState.operator = action.operator!
-        const tr = handleOperatorMotion(state, vimState, from, to, false)
-        if (tr) {
-          tr.scrollIntoView()
-          view.dispatch(tr)
-        }
-
-        if (action.operator === 'c' && action.insertedText) {
-          const ns = view.state
-          const itr = ns.tr.insertText(
-            action.insertedText,
-            ns.selection.$head.pos,
-          )
-          view.dispatch(itr)
-          vimState.mode = 'normal'
-          const fs = view.state
-          const fp = fs.selection.$head.pos
-          const ls = lineStartAt(fs, fp)
-          view.dispatch(moveCursor(fs, fp > ls ? fp - 1 : fp))
-        }
-      }
-      break
-    }
-    case 'operator-textobject': {
-      if (!action.operator || !action.textObject) break
-
-      const result = resolveTextObject(
-        state,
-        pos,
-        action.textObject.type,
-        action.textObject.object,
-      )
-      if (result) {
-        vimState.operator = action.operator!
-        const tr = handleOperatorMotion(
-          state,
-          vimState,
-          result.from,
-          result.to,
-          false,
-        )
-        if (tr) {
-          tr.scrollIntoView()
-          view.dispatch(tr)
-        }
-
-        if (action.operator === 'c' && action.insertedText) {
-          const ns = view.state
-          const itr = ns.tr.insertText(
-            action.insertedText,
-            ns.selection.$head.pos,
-          )
-          view.dispatch(itr)
-          vimState.mode = 'normal'
-          const fs = view.state
-          const fp = fs.selection.$head.pos
-          const ls = lineStartAt(fs, fp)
-          view.dispatch(moveCursor(fs, fp > ls ? fp - 1 : fp))
-        }
-      }
-      break
-    }
-    case 'insert-command': {
-      switch (action.key) {
-        case 'o': {
-          const tr = openLineBelow(state, pos, vimState)
-          view.dispatch(tr)
-          break
-        }
-        case 'O': {
-          const tr = openLineAbove(state, pos, vimState)
-          view.dispatch(tr)
-          break
-        }
-        case 'i': {
-          vimState.mode = 'insert'
-          view.dispatch(state.tr)
-          break
-        }
-        case 'a': {
-          vimState.mode = 'insert'
-          const newPos = Math.min(pos + 1, lineEndAt(state, pos))
-          view.dispatch(moveCursor(state, newPos))
-          break
-        }
-        case 'A': {
-          vimState.mode = 'insert'
-          const endPos = lineEndAt(state, pos)
-          view.dispatch(moveCursor(state, endPos))
-          break
-        }
-        case 'I': {
-          vimState.mode = 'insert'
-          const fnbPos = firstNonBlank(state)
-          view.dispatch(moveCursor(state, fnbPos))
-          break
-        }
-        case 'C': {
-          const endPos = lineEndAt(state, pos)
-          if (pos < endPos) {
-            const tr = executeChange(state, pos, endPos, vimState, false)
-            view.dispatch(tr)
-          } else {
-            vimState.mode = 'insert'
-          }
-          break
-        }
-      }
-      // Insert the recorded text and return to normal mode
-      if (action.insertedText) {
-        const ns = view.state
-        const itr = ns.tr.insertText(
-          action.insertedText,
-          ns.selection.$head.pos,
-        )
-        view.dispatch(itr)
-        vimState.mode = 'normal'
-        const fs = view.state
-        const fp = fs.selection.$head.pos
-        const ls = lineStartAt(fs, fp)
-        view.dispatch(moveCursor(fs, fp > ls ? fp - 1 : fp))
-      }
-      break
-    }
-  }
-}
+// function replayLastAction(
+//   view: EditorView,
+//   vimState: VimState,
+//   commands: VimEditorCommands,
+// ) {
+//   const action = vimState.lastAction
+//   if (!action) return
+//
+//   const state = view.state
+//   const pos = state.selection.$head.pos
+//   const count = vimState.count ?? action.count
+//
+//   switch (action.type) {
+//     case 'command': {
+//       switch (action.key) {
+//         case 'x': {
+//           const tr = deleteChar(state, pos, vimState, count)
+//           view.dispatch(tr)
+//           break
+//         }
+//         case 'p': {
+//           pasteFromClipboard(view, vimState, count, false)
+//           break
+//         }
+//         case 'P': {
+//           pasteFromClipboard(view, vimState, count, true)
+//           break
+//         }
+//         case 'r': {
+//           if (action.replaceChar) {
+//             const tr = replaceChars(state, pos, action.replaceChar, count)
+//             view.dispatch(tr)
+//           }
+//           break
+//         }
+//         case 'J': {
+//           const tr = joinLines(state, pos, count)
+//           view.dispatch(tr)
+//           break
+//         }
+//         case 'D': {
+//           const endPos = lineEndAt(state, pos)
+//           if (pos < endPos) {
+//             const tr = executeDelete(state, pos, endPos, vimState, false)
+//             view.dispatch(tr)
+//           }
+//           break
+//         }
+//         case '>>': {
+//           for (let i = 0; i < count; i++) {
+//             commands.indent?.()
+//           }
+//           break
+//         }
+//         case '<<': {
+//           for (let i = 0; i < count; i++) {
+//             commands.outdent?.()
+//           }
+//           break
+//         }
+//       }
+//       break
+//     }
+//     case 'operator-linewise': {
+//       switch (action.operator) {
+//         case 'd': {
+//           const tr = deleteLines(state, pos, count, vimState)
+//           tr.scrollIntoView()
+//           view.dispatch(tr)
+//           break
+//         }
+//         case 'c': {
+//           const tr = changeLines(state, pos, count, vimState)
+//           tr.scrollIntoView()
+//           view.dispatch(tr)
+//           if (action.insertedText) {
+//             const ns = view.state
+//             const itr = ns.tr.insertText(
+//               action.insertedText,
+//               ns.selection.$head.pos,
+//             )
+//             view.dispatch(itr)
+//             vimState.mode = 'normal'
+//             const fs = view.state
+//             const fp = fs.selection.$head.pos
+//             const ls = lineStartAt(fs, fp)
+//             view.dispatch(moveCursor(fs, fp > ls ? fp - 1 : fp))
+//           }
+//           break
+//         }
+//       }
+//       break
+//     }
+//     case 'operator-motion': {
+//       if (!action.operator || !action.motion) break
+//
+//       let targetPos: number | null = null
+//
+//       if (action.findMotion && action.findChar) {
+//         let current = pos
+//         for (let i = 0; i < count; i++) {
+//           let result: number | null = null
+//           switch (action.findMotion) {
+//             case 'f':
+//               result = motionFindCharForward(state, current, action.findChar)
+//               break
+//             case 'F':
+//               result = motionFindCharBackward(state, current, action.findChar)
+//               break
+//             case 't':
+//               result = motionTillCharForward(state, current, action.findChar)
+//               break
+//             case 'T':
+//               result = motionTillCharBackward(state, current, action.findChar)
+//               break
+//           }
+//           if (result === null) break
+//           current = result
+//         }
+//         targetPos = current !== pos ? current : null
+//       } else if (action.motion === 'gg') {
+//         targetPos = motionDocStart(state)
+//       } else {
+//         targetPos = resolveMotionKey(state, pos, action.motion, count, false)
+//       }
+//
+//       if (targetPos !== null) {
+//         let from = pos
+//         let to = targetPos
+//         if (action.findMotion === 'f' || action.findMotion === 't') {
+//           to = targetPos + 1
+//         } else if (action.findMotion === 'F' || action.findMotion === 'T') {
+//           from = targetPos
+//           to = pos
+//         } else if (action.motion === 'e' || action.motion === 'E') {
+//           to = targetPos + 1
+//         }
+//
+//         vimState.operator = action.operator!
+//         const tr = handleOperatorMotion(state, vimState, from, to, false)
+//         if (tr) {
+//           tr.scrollIntoView()
+//           view.dispatch(tr)
+//         }
+//
+//         if (action.operator === 'c' && action.insertedText) {
+//           const ns = view.state
+//           const itr = ns.tr.insertText(
+//             action.insertedText,
+//             ns.selection.$head.pos,
+//           )
+//           view.dispatch(itr)
+//           vimState.mode = 'normal'
+//           const fs = view.state
+//           const fp = fs.selection.$head.pos
+//           const ls = lineStartAt(fs, fp)
+//           view.dispatch(moveCursor(fs, fp > ls ? fp - 1 : fp))
+//         }
+//       }
+//       break
+//     }
+//     case 'operator-textobject': {
+//       if (!action.operator || !action.textObject) break
+//
+//       const result = resolveTextObject(
+//         state,
+//         pos,
+//         action.textObject.type,
+//         action.textObject.object,
+//       )
+//       if (result) {
+//         vimState.operator = action.operator!
+//         const tr = handleOperatorMotion(
+//           state,
+//           vimState,
+//           result.from,
+//           result.to,
+//           false,
+//         )
+//         if (tr) {
+//           tr.scrollIntoView()
+//           view.dispatch(tr)
+//         }
+//
+//         if (action.operator === 'c' && action.insertedText) {
+//           const ns = view.state
+//           const itr = ns.tr.insertText(
+//             action.insertedText,
+//             ns.selection.$head.pos,
+//           )
+//           view.dispatch(itr)
+//           vimState.mode = 'normal'
+//           const fs = view.state
+//           const fp = fs.selection.$head.pos
+//           const ls = lineStartAt(fs, fp)
+//           view.dispatch(moveCursor(fs, fp > ls ? fp - 1 : fp))
+//         }
+//       }
+//       break
+//     }
+//     case 'insert-command': {
+//       switch (action.key) {
+//         case 'o': {
+//           const tr = openLineBelow(state, pos, vimState)
+//           view.dispatch(tr)
+//           break
+//         }
+//         case 'O': {
+//           const tr = openLineAbove(state, pos, vimState)
+//           view.dispatch(tr)
+//           break
+//         }
+//         case 'i': {
+//           vimState.mode = 'insert'
+//           view.dispatch(state.tr)
+//           break
+//         }
+//         case 'a': {
+//           vimState.mode = 'insert'
+//           const newPos = Math.min(pos + 1, lineEndAt(state, pos))
+//           view.dispatch(moveCursor(state, newPos))
+//           break
+//         }
+//         case 'A': {
+//           vimState.mode = 'insert'
+//           const endPos = lineEndAt(state, pos)
+//           view.dispatch(moveCursor(state, endPos))
+//           break
+//         }
+//         case 'I': {
+//           vimState.mode = 'insert'
+//           const fnbPos = firstNonBlank(state)
+//           view.dispatch(moveCursor(state, fnbPos))
+//           break
+//         }
+//         case 'C': {
+//           const endPos = lineEndAt(state, pos)
+//           if (pos < endPos) {
+//             const tr = executeChange(state, pos, endPos, vimState, false)
+//             view.dispatch(tr)
+//           } else {
+//             vimState.mode = 'insert'
+//           }
+//           break
+//         }
+//       }
+//       // Insert the recorded text and return to normal mode
+//       if (action.insertedText) {
+//         const ns = view.state
+//         const itr = ns.tr.insertText(
+//           action.insertedText,
+//           ns.selection.$head.pos,
+//         )
+//         view.dispatch(itr)
+//         vimState.mode = 'normal'
+//         const fs = view.state
+//         const fp = fs.selection.$head.pos
+//         const ls = lineStartAt(fs, fp)
+//         view.dispatch(moveCursor(fs, fp > ls ? fp - 1 : fp))
+//       }
+//       break
+//     }
+//   }
+// }
 
 /**
  * Main key handler for the vim plugin.
@@ -1617,271 +1604,125 @@ export function handleKeyDown(
   // ── Normal mode key dispatch ──
   switch (key) {
     // Mode switching
-    case 'i': {
-      startInsertTracking(vimState, {
-        type: 'insert-command',
-        key: 'i',
-        count: 1,
-      })
-      return true
-    }
-    case 'I': {
-      startInsertTracking(vimState, {
-        type: 'insert-command',
-        key: 'I',
-        count: 1,
-      })
-      return true
-    }
-    case 'a': {
-      startInsertTracking(vimState, {
-        type: 'insert-command',
-        key: 'a',
-        count: 1,
-      })
-      return true
-    }
-    case 'A': {
-      startInsertTracking(vimState, {
-        type: 'insert-command',
-        key: 'A',
-        count: 1,
-      })
-      return true
-    }
-    case 'v': {
-    }
-    case 'V': {
 
-    }
-
-    // Operators
-    case 'd': {
-      vimState.operator = 'd'
-      return true
-    }
-    case 'y': {
-      vimState.operator = 'y'
-      return true
-    }
-    case 'c': {
-      vimState.operator = 'c'
-      return true
-    }
-
-    // Linewise shortcuts
-    case 'D': {
-         }
-    case 'Y': {
-
-    }
-    case 'C': {
-      startInsertTracking(vimState, {
-        type: 'insert-command',
-        key: 'C',
-        count: 1,
-      })
-    }
-
-    // Editing commands
-    case 'x': {
-    }
-    case 'p': {
-    }
-    case 'P': {
-    }
-    case 'r': {
-      const replaceCount = count
-      clearPendingState(vimState)
-      vimState.replacePendingCount = replaceCount
-      return true
-    }
     case 'R': {
       vimState.mode = 'replace'
       clearPendingState(vimState)
       view.dispatch(state.tr)
       return true
     }
-    case 'o': {
-      startInsertTracking(vimState, {
-        type: 'insert-command',
-        key: 'o',
-        count: 1,
-      })
-    }
-    case 'O': {
-      startInsertTracking(vimState, {
-        type: 'insert-command',
-        key: 'O',
-        count: 1,
-      })
-    }
-    case 'J': {
-      const tr = joinLines(state, pos, count)
-      view.dispatch(tr)
-      vimState.lastAction = { type: 'command', key: 'J', count }
-      clearPendingState(vimState)
-      return true
-    }
+
+    // case 'J': {
+    //   const tr = joinLines(state, pos, count)
+    //   view.dispatch(tr)
+    //   vimState.lastAction = { type: 'command', key: 'J', count }
+    //   clearPendingState(vimState)
+    //   return true
+    // }
+
+    // // Find/Till
+    // case 'f':
+    // case 'F':
+    // case 't':
+    // case 'T': {
+    //   vimState.findPending = true
+    //   vimState.findMotion = key
+    //   return true
+    // }
+    //
+    // // Repeat last find (; same direction, , reversed)
+    // case ';':
+    // case ',': {
+    //   if (vimState.lastFindMotion && vimState.lastFindChar) {
+    //     const motion =
+    //       key === ';'
+    //         ? vimState.lastFindMotion
+    //         : reverseFind(vimState.lastFindMotion)
+    //     const targetPos = repeatFind(
+    //       state,
+    //       pos,
+    //       motion,
+    //       vimState.lastFindChar,
+    //       count,
+    //     )
+    //     if (targetPos !== null) view.dispatch(moveCursor(state, targetPos))
+    //   }
+    //   clearPendingState(vimState)
+    //   return true
+    // }
 
 
-
-    case 'g': {
-      vimState.ggPending = true
-      return true
-    }
-
-    // Find/Till
-    case 'f':
-    case 'F':
-    case 't':
-    case 'T': {
-      vimState.findPending = true
-      vimState.findMotion = key
-      return true
-    }
-
-    // Repeat last find (; same direction, , reversed)
-    case ';':
-    case ',': {
-      if (vimState.lastFindMotion && vimState.lastFindChar) {
-        const motion =
-          key === ';'
-            ? vimState.lastFindMotion
-            : reverseFind(vimState.lastFindMotion)
-        const targetPos = repeatFind(
-          state,
-          pos,
-          motion,
-          vimState.lastFindChar,
-          count,
-        )
-        if (targetPos !== null) view.dispatch(moveCursor(state, targetPos))
-      }
-      clearPendingState(vimState)
-      return true
-    }
-
-    // Screen motions (top/middle/bottom of viewport)
-    case 'H':
-    case 'M':
-    case 'L': {
-      const targetPos = screenLinePos(view, key)
-      if (targetPos !== null) view.dispatch(moveCursor(state, targetPos))
-      clearPendingState(vimState)
-      return true
-    }
-
-    // Center cursor
-    case 'z': {
-      vimState.zzPending = true
-      return true
-    }
-
-    // Indent/Outdent
-    case '>': {
-      vimState.shiftRightPending = true
-      return true
-    }
-    case '<': {
-      vimState.shiftLeftPending = true
-      return true
-    }
 
     // Marks
-    case 'm': {
-      vimState.markPending = true
-      return true
-    }
-    case "'": {
-      vimState.gotoMarkPending = true
-      return true
-    }
+    // case 'm': {
+    //   vimState.markPending = true
+    //   return true
+    // }
+    // case "'": {
+    //   vimState.gotoMarkPending = true
+    //   return true
+    // }
 
-    // Search
-    case '/': {
-      vimState.searchActive = true
-      vimState.searchQuery = ''
-      view.dispatch(state.tr) // trigger decoration update for search bar
-      return true
-    }
-    case 'n': {
-      if (vimState.searchTerm) {
-        vimState.searchHighlightsVisible = true
-        const matches = findAllMatches(
-          state,
-          vimState.searchTerm,
-          vimState.searchWholeWord,
-        )
-        if (matches.length > 0) {
-          let idx = matches.findIndex((m) => m > pos)
-          if (idx === -1) idx = 0 // wrap around
-          vimState.statusMessage = `${idx + 1}/${matches.length}`
-          view.dispatch(moveCursor(state, matches[idx]))
-          centerCursorInEditor(view, matches[idx])
-        } else {
-          vimState.statusMessage = 'pattern not found'
-          view.dispatch(state.tr)
-        }
-      }
-      clearPendingState(vimState)
-      return true
-    }
-    case 'N': {
-      if (vimState.searchTerm) {
-        vimState.searchHighlightsVisible = true
-        const matches = findAllMatches(
-          state,
-          vimState.searchTerm,
-          vimState.searchWholeWord,
-        )
-        if (matches.length > 0) {
-          let idx = -1
-          for (let i = matches.length - 1; i >= 0; i--) {
-            if (matches[i] < pos) {
-              idx = i
-              break
-            }
-          }
-          if (idx === -1) idx = matches.length - 1 // wrap around
-          vimState.statusMessage = `${idx + 1}/${matches.length}`
-          view.dispatch(moveCursor(state, matches[idx]))
-          centerCursorInEditor(view, matches[idx])
-        } else {
-          vimState.statusMessage = 'pattern not found'
-          view.dispatch(state.tr)
-        }
-      }
-      clearPendingState(vimState)
-      return true
-    }
-    case '*': {
-      const word = wordUnderCursor(state, pos)
-      if (word) {
-        vimState.searchTerm = word
-        vimState.searchWholeWord = true
-        vimState.searchHighlightsVisible = true
-        const matches = findAllMatches(state, word, true)
-        if (matches.length > 0) {
-          let idx = matches.findIndex((m) => m > pos)
-          if (idx === -1) idx = 0 // wrap around
-          vimState.statusMessage = `${idx + 1}/${matches.length}`
-          view.dispatch(moveCursor(state, matches[idx]))
-          centerCursorInEditor(view, matches[idx])
-        }
-      }
-      clearPendingState(vimState)
-      return true
-    }
+    // // Search
+    // case '/': {
+    //   vimState.searchActive = true
+    //   vimState.searchQuery = ''
+    //   view.dispatch(state.tr) // trigger decoration update for search bar
+    //   return true
+    // }
+    // case 'n': {
+    //   if (vimState.searchTerm) {
+    //     vimState.searchHighlightsVisible = true
+    //     const matches = findAllMatches(
+    //       state,
+    //       vimState.searchTerm,
+    //       vimState.searchWholeWord,
+    //     )
+    //     if (matches.length > 0) {
+    //       let idx = matches.findIndex((m) => m > pos)
+    //       if (idx === -1) idx = 0 // wrap around
+    //       vimState.statusMessage = `${idx + 1}/${matches.length}`
+    //       view.dispatch(moveCursor(state, matches[idx]))
+    //       centerCursorInEditor(view, matches[idx])
+    //     } else {
+    //       vimState.statusMessage = 'pattern not found'
+    //       view.dispatch(state.tr)
+    //     }
+    //   }
+    //   clearPendingState(vimState)
+    //   return true
+    // }
+    // case 'N': {
+    //   if (vimState.searchTerm) {
+    //     vimState.searchHighlightsVisible = true
+    //     const matches = findAllMatches(
+    //       state,
+    //       vimState.searchTerm,
+    //       vimState.searchWholeWord,
+    //     )
+    //     if (matches.length > 0) {
+    //       let idx = -1
+    //       for (let i = matches.length - 1; i >= 0; i--) {
+    //         if (matches[i] < pos) {
+    //           idx = i
+    //           break
+    //         }
+    //       }
+    //       if (idx === -1) idx = matches.length - 1 // wrap around
+    //       vimState.statusMessage = `${idx + 1}/${matches.length}`
+    //       view.dispatch(moveCursor(state, matches[idx]))
+    //       centerCursorInEditor(view, matches[idx])
+    //     } else {
+    //       vimState.statusMessage = 'pattern not found'
+    //       view.dispatch(state.tr)
+    //     }
+    //   }
+    //   clearPendingState(vimState)
+    //   return true
+    // }
+    //
 
-    // Dot repeat
-    case '.': {
-      if (vimState.lastAction) {
-        replayLastAction(view, vimState, commands)
-      }
-      clearPendingState(vimState)
-      return true
-    }
+
   }
 
   // Consume all remaining keys in normal mode to prevent them from inserting text

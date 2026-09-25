@@ -1,7 +1,9 @@
 import type { Node as ProseMirrorNode } from 'prosemirror-model'
 import { VimVisualModeState } from './visual-mode/visual-mode'
+import { VimInsertModeState } from './insert-mode/insert-mode'
 
 export type Mode = 'normal' | 'insert' | 'replace' | 'visual' | 'visual-line'
+export type VimOperator = 'd' | 'y' | 'c' | '<' | '>' | '=' | 'g' | 'r'
 
 export interface Register {
   text: string
@@ -29,9 +31,10 @@ export interface RepeatableAction {
 
 export interface VimState {
   mode: Mode
-  operators: string[]
+  operators: VimOperator[]
 
   visualMode: VimVisualModeState
+  insertMode: VimInsertModeState
 
   count: number | null
   operator: 'd' | 'y' | 'c' | null
