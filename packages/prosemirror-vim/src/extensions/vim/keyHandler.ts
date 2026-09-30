@@ -1178,68 +1178,9 @@ export function handleKeyDown(
     return true
   }
 
-  // ── MARK PENDING (m + char) ──
-  // -- NORMAL MODE -- Check if keep
-  if (vimState.markPending) {
-    // Ignore modifier-only keys
-    if (
-      key === 'Shift' ||
-      key === 'Control' ||
-      key === 'Alt' ||
-      key === 'Meta'
-    ) {
-      return true
-    }
-    if (key.length === 1 && /[a-zA-Z0-9]/.test(key)) {
-      vimState.marks[key] = pos
-      vimState.statusMessage = `mark ${key} set`
-    }
-    vimState.markPending = false
-    clearPendingState(vimState)
-    view.dispatch(state.tr) // trigger status update
-    return true
-  }
 
-  // ── GOTO MARK PENDING (' + char) ──
-  if (vimState.gotoMarkPending) {
-    // Ignore modifier-only keys
-    if (
-      key === 'Shift' ||
-      key === 'Control' ||
-      key === 'Alt' ||
-      key === 'Meta'
-    ) {
-      return true
-    }
-    if (key.length === 1 && /[a-zA-Z0-9]/.test(key)) {
-      const markPos = vimState.marks[key]
-      if (markPos !== undefined) {
-        const clampedPos = Math.min(markPos, state.doc.content.size)
-        vimState.statusMessage = `mark ${key}`
-        if (vimState.operator) {
-          const tr = handleOperatorMotion(
-            state,
-            vimState,
-            pos,
-            clampedPos,
-            false,
-          )
-          if (tr) view.dispatch(tr)
-        } else {
-          view.dispatch(moveCursor(state, clampedPos))
-          centerCursorInEditor(view, clampedPos)
-        }
-      } else {
-        vimState.statusMessage = `mark ${key} not set`
-        view.dispatch(state.tr) // trigger status update
-      }
-    }
-    vimState.gotoMarkPending = false
-    clearPendingState(vimState)
-    return true
-  }
 
-  // ── OPERATOR PENDING or VISUAL: i/a starts text object ──
+   // ── OPERATOR PENDING or VISUAL: i/a starts text object ──
   // -- NORMAL AND VISUAL MODE --
   if (
     (vimState.operator ||
@@ -1478,42 +1419,7 @@ export function handleKeyDown(
 
   // Operator pending mode: doubled operator = linewise
   if (vimState.operator) {
-    if (key === vimState.operator) {
-      // dd, yy, cc — linewise operation
-      switch (vimState.operator) {
-        case 'd': {
-          const tr = deleteLines(state, pos, count, vimState)
-          vimState.lastAction = {
-            type: 'operator-linewise',
-            key: 'dd',
-            count,
-            operator: 'd',
-          }
-          clearPendingState(vimState)
-          tr.scrollIntoView()
-          view.dispatch(tr)
-          return true
-        }
-        case 'y': {
-          yankLines(state, pos, count, vimState)
-          clearPendingState(vimState)
-          return true
-        }
-        case 'c': {
-          const tr = changeLines(state, pos, count, vimState)
-          clearPendingState(vimState)
-          tr.scrollIntoView()
-          view.dispatch(tr)
-          startInsertTracking(vimState, {
-            type: 'operator-linewise',
-            key: 'cc',
-            count,
-            operator: 'c',
-          })
-          return true
-        }
-      }
-    }
+
 
     // Operator + motion — prepare goalColumn for j/k
     const savedOp = vimState.operator
@@ -1590,12 +1496,6 @@ export function handleKeyDown(
       return true
     }
 
-    // Operator + f/F/t/T
-    if (key === 'f' || key === 'F' || key === 't' || key === 'T') {
-      vimState.findPending = true
-      vimState.findMotion = key
-      return true
-    }
 
     // Operator + text object (i/a already handled above)
     return true
@@ -1611,117 +1511,6 @@ export function handleKeyDown(
       view.dispatch(state.tr)
       return true
     }
-
-    // case 'J': {
-    //   const tr = joinLines(state, pos, count)
-    //   view.dispatch(tr)
-    //   vimState.lastAction = { type: 'command', key: 'J', count }
-    //   clearPendingState(vimState)
-    //   return true
-    // }
-
-    // // Find/Till
-    // case 'f':
-    // case 'F':
-    // case 't':
-    // case 'T': {
-    //   vimState.findPending = true
-    //   vimState.findMotion = key
-    //   return true
-    // }
-    //
-    // // Repeat last find (; same direction, , reversed)
-    // case ';':
-    // case ',': {
-    //   if (vimState.lastFindMotion && vimState.lastFindChar) {
-    //     const motion =
-    //       key === ';'
-    //         ? vimState.lastFindMotion
-    //         : reverseFind(vimState.lastFindMotion)
-    //     const targetPos = repeatFind(
-    //       state,
-    //       pos,
-    //       motion,
-    //       vimState.lastFindChar,
-    //       count,
-    //     )
-    //     if (targetPos !== null) view.dispatch(moveCursor(state, targetPos))
-    //   }
-    //   clearPendingState(vimState)
-    //   return true
-    // }
-
-
-
-    // Marks
-    // case 'm': {
-    //   vimState.markPending = true
-    //   return true
-    // }
-    // case "'": {
-    //   vimState.gotoMarkPending = true
-    //   return true
-    // }
-
-    // // Search
-    // case '/': {
-    //   vimState.searchActive = true
-    //   vimState.searchQuery = ''
-    //   view.dispatch(state.tr) // trigger decoration update for search bar
-    //   return true
-    // }
-    // case 'n': {
-    //   if (vimState.searchTerm) {
-    //     vimState.searchHighlightsVisible = true
-    //     const matches = findAllMatches(
-    //       state,
-    //       vimState.searchTerm,
-    //       vimState.searchWholeWord,
-    //     )
-    //     if (matches.length > 0) {
-    //       let idx = matches.findIndex((m) => m > pos)
-    //       if (idx === -1) idx = 0 // wrap around
-    //       vimState.statusMessage = `${idx + 1}/${matches.length}`
-    //       view.dispatch(moveCursor(state, matches[idx]))
-    //       centerCursorInEditor(view, matches[idx])
-    //     } else {
-    //       vimState.statusMessage = 'pattern not found'
-    //       view.dispatch(state.tr)
-    //     }
-    //   }
-    //   clearPendingState(vimState)
-    //   return true
-    // }
-    // case 'N': {
-    //   if (vimState.searchTerm) {
-    //     vimState.searchHighlightsVisible = true
-    //     const matches = findAllMatches(
-    //       state,
-    //       vimState.searchTerm,
-    //       vimState.searchWholeWord,
-    //     )
-    //     if (matches.length > 0) {
-    //       let idx = -1
-    //       for (let i = matches.length - 1; i >= 0; i--) {
-    //         if (matches[i] < pos) {
-    //           idx = i
-    //           break
-    //         }
-    //       }
-    //       if (idx === -1) idx = matches.length - 1 // wrap around
-    //       vimState.statusMessage = `${idx + 1}/${matches.length}`
-    //       view.dispatch(moveCursor(state, matches[idx]))
-    //       centerCursorInEditor(view, matches[idx])
-    //     } else {
-    //       vimState.statusMessage = 'pattern not found'
-    //       view.dispatch(state.tr)
-    //     }
-    //   }
-    //   clearPendingState(vimState)
-    //   return true
-    // }
-    //
-
 
   }
 

@@ -2,6 +2,24 @@ import type { Node as ProseMirrorNode } from 'prosemirror-model'
 import { VimVisualModeState } from './visual-mode/visual-mode'
 import { VimInsertModeState } from './insert-mode/insert-mode'
 
+export interface VimRepeatableAction {
+  type:
+    | 'command'
+    | 'operator-linewise'
+    | 'operator-motion'
+    | 'operator-textobject'
+    | 'insert-command'
+  key: string
+  count: number
+  operator?: 'd' | 'y' | 'c'
+  motion?: string
+  findChar?: string
+  findMotion?: 'f' | 'F' | 't' | 'T'
+  textObject?: { type: 'i' | 'a'; object: string }
+  insertedText?: string
+  replaceChar?: string
+}
+
 export type Mode = 'normal' | 'insert' | 'replace' | 'visual' | 'visual-line'
 export type VimOperator = 'd' | 'y' | 'c' | '<' | '>' | '=' | 'g' | 'r'
 
@@ -81,6 +99,9 @@ export interface VimEditorCommands {
 export function defaultVimState(): VimState {
   return {
     mode: 'normal',
+    operators: [],
+    insertMode: { isTrackingInsert: false, insertTextBuffer: '' },
+    visualMode: { anchor: null, head: null },
     count: null,
     operator: null,
     findPending: false,
