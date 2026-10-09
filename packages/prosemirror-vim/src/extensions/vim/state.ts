@@ -7,8 +7,10 @@ import {
 } from 'prosemirror-state'
 import { Decoration, DecorationSet, EditorView } from 'prosemirror-view'
 import { VimState, VimEditorCommands, defaultVimState } from './types'
-import { handleKeyDown } from './keyHandler'
 import { findAllMatches } from './utils'
+import { normalMode } from './normal-mode'
+import { insertMode } from './insert-mode'
+import { visualMode } from './visual-mode'
 
 export const vimPluginKey = new PluginKey<VimState>('vimMode')
 
@@ -22,16 +24,8 @@ export function createVimPlugin(commands: VimEditorCommands): Plugin<VimState> {
       init(): VimState {
         return vimState
       },
-      apply(tr: Transaction, value: VimState): VimState {
-        // Map mark positions through document changes
-        if (tr.docChanged && Object.keys(value.marks).length > 0) {
-          const newMarks: Record<string, number> = {}
-          for (const [key, pos] of Object.entries(value.marks)) {
-            newMarks[key] = tr.mapping.map(pos)
-          }
-          value.marks = newMarks
-        }
-        return value
+      apply(tr, value) {
+          return value
       },
     },
     props: {
@@ -42,8 +36,8 @@ export function createVimPlugin(commands: VimEditorCommands): Plugin<VimState> {
             if (from !== to && vimState.mode === 'normal') {
               // Native selection in normal mode → enter visual mode
               vimState.mode = 'visual'
-              vimState.visualAnchor = from
-              vimState.visualHead = to > from ? to - 1 : from
+              vimState.visualMode.anchor = from
+              vimState.visualMode.head = to > from ? to - 1 : from
               view.dispatch(view.state.tr)
             } else if (
               from === to &&
@@ -51,8 +45,8 @@ export function createVimPlugin(commands: VimEditorCommands): Plugin<VimState> {
             ) {
               // Click (empty selection) in visual mode → exit to normal
               vimState.mode = 'normal'
-              vimState.visualAnchor = null
-              vimState.visualHead = null
+              vimState.visualMode.anchor = null
+              vimState.visualMode.head = null
               view.dispatch(view.state.tr)
             }
           }, 0)
@@ -61,7 +55,16 @@ export function createVimPlugin(commands: VimEditorCommands): Plugin<VimState> {
       },
 
       handleKeyDown(view: any, event: any) {
-        return handleKeyDown(view, event, vimState, commands)
+        switch (vimState.mode) {
+          case "normal":
+            return normalMode(view, event, vimState, commands)
+          case "insert":
+            return insertMode(view, event, vimState, commands)
+          case "visual":
+            return visualMode(view, event, vimState, commands)
+          default:
+            return false;
+        }
       },
 
       handleTextInput(
@@ -70,8 +73,8 @@ export function createVimPlugin(commands: VimEditorCommands): Plugin<VimState> {
         _to: number,
         text: string,
       ) {
-        if (vimState.isTrackingInsert) {
-          vimState.insertTextBuffer += text
+        if (vimState.insertMode.isTrackingInsert) {
+          vimState.insertMode.insertTextBuffer += text
         }
         return false
       },
@@ -85,7 +88,7 @@ export function createVimPlugin(commands: VimEditorCommands): Plugin<VimState> {
 
       decorations(state: EditorState) {
         const decorations: Decoration[] = []
-        const cursorPos = vimState.visualHead ?? state.selection.$head.pos
+        const cursorPos = vimState.visualMode.head ?? state.selection.$head.pos
 
         if (vimState.mode !== 'insert' && vimState.mode !== 'replace') {
           // Block cursor

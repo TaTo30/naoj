@@ -18,7 +18,7 @@ function handleOperatorMotion(
   to: number,
   linewise: boolean = false,
 ): Transaction | null {
-  const op = vimState.operator
+  const op = vimState.operators[0]
   if (!op) return null
 
   // Ensure from < to
@@ -297,7 +297,7 @@ function replayLastAction(
           to = targetPos + 1
         }
 
-        vimState.operator = action.operator!
+        vimState.operators.push(action.operator!)
         const tr = handleOperatorMotion(state, vimState, from, to, false)
         if (tr) {
           tr.scrollIntoView()
@@ -330,7 +330,7 @@ function replayLastAction(
         action.textObject.object,
       )
       if (result) {
-        vimState.operator = action.operator!
+        vimState.operators.push(action.operator)
         const tr = handleOperatorMotion(
           state,
           vimState,
@@ -425,7 +425,7 @@ function replayLastAction(
 }
 
 
-
+// main function
 export function normalMode(view: EditorView, event: KeyboardEvent, state: VimState, commands: VimEditorCommands): boolean {
 
   // Clean all pending operators if Escape or Ctrl+C is pressed
@@ -470,12 +470,6 @@ export function normalMode(view: EditorView, event: KeyboardEvent, state: VimSta
         const tr = changeLines(view.state, pos, count, state)
         tr.scrollIntoView()
         view.dispatch(tr)
-        // startInsertTracking(vimState, {
-        //   type: "operator-linewise",
-        //   key: "cc",
-        //   count,
-        //   operator: "c",
-        // })
         return true
       }
       // gg - Move to top of document

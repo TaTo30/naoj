@@ -53,22 +53,11 @@ export interface VimState {
 
   visualMode: VimVisualModeState
   insertMode: VimInsertModeState
-
   count: number | null
-  operator: 'd' | 'y' | 'c' | null
-  findPending: boolean
-  findMotion: 'f' | 'F' | 't' | 'T' | null
-  lastFindMotion: 'f' | 'F' | 't' | 'T' | null
-  lastFindChar: string | null
-  ggPending: boolean
-  visualAnchor: number | null
-  visualHead: number | null
   register: Register
   goalColumn: number | null
+  lastAction: RepeatableAction | null
   // Marks
-  marks: Record<string, number>
-  markPending: boolean
-  gotoMarkPending: boolean
   // Search
   searchTerm: string
   searchWholeWord: boolean
@@ -76,9 +65,6 @@ export interface VimState {
   searchQuery: string
   searchHighlightsVisible: boolean
   // Repeat
-  lastAction: RepeatableAction | null
-  insertTextBuffer: string
-  isTrackingInsert: boolean
   replacePendingCount: number | null
   // Indent pending
   shiftRightPending: boolean
@@ -100,30 +86,17 @@ export function defaultVimState(): VimState {
   return {
     mode: 'normal',
     operators: [],
+    lastAction: null,
     insertMode: { isTrackingInsert: false, insertTextBuffer: '' },
     visualMode: { anchor: null, head: null },
     count: null,
-    operator: null,
-    findPending: false,
-    findMotion: null,
-    lastFindMotion: null,
-    lastFindChar: null,
-    ggPending: false,
-    visualAnchor: null,
-    visualHead: null,
     register: { text: '', linewise: false, content: null },
     goalColumn: null,
-    marks: {},
-    markPending: false,
-    gotoMarkPending: false,
     searchTerm: '',
     searchWholeWord: false,
     searchActive: false,
     searchQuery: '',
     searchHighlightsVisible: false,
-    lastAction: null,
-    insertTextBuffer: '',
-    isTrackingInsert: false,
     replacePendingCount: null,
     shiftRightPending: false,
     shiftLeftPending: false,
